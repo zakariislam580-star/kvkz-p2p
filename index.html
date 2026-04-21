@@ -7,198 +7,79 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1 { font-size: 1.5rem; color: #0088cc; margin-bottom: 20px; }
-        
-        #ton-connect-button { 
-            margin-bottom: 25px; 
-            width: 100%;
-            display: flex;
-            justify-content: center;
-        }
-
-        #ads-container { width: 100%; max-width: 500px; }
-        
-        .ad-card {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            border: 1px solid #eee;
-        }
-        .ad-header { display: flex; justify-content: space-between; align-items: center; }
-        .type-badge {
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .sell { background: #ffebee; color: #d32f2f; }
-        .buy { background: #e8f5e9; color: #388e3c; }
-        
-        .price { font-size: 1.2rem; font-weight: bold; margin: 12px 0; }
-        .details { font-size: 0.85rem; color: #666; margin-bottom: 12px; line-height: 1.4; }
-        
-        .buy-btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 10px;
-            background: #0088cc;
-            color: white;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .buy-btn:active { transform: scale(0.98); background: #0077b3; }
-        
-        #loader { margin-top: 40px; color: #888; font-style: italic; }
+        body { font-family: sans-serif; background: #f4f4f9; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        #ton-connect-button { margin-bottom: 20px; }
+        .ad-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px; width: 100%; max-width: 400px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .price { font-size: 1.2rem; font-weight: bold; color: #0088cc; }
+        .error-box { color: #d32f2f; background: #ffebee; padding: 15px; border-radius: 8px; font-size: 0.9rem; width: 100%; max-width: 400px; word-break: break-all; }
+        #loader { color: #666; margin-top: 50px; }
     </style>
 </head>
 <body>
 
-    <h1>KVKZ P2P MARKET</h1>
-    
     <div id="ton-connect-button"></div>
-
     <div id="loader">Загрузка объявлений...</div>
     <div id="ads-container"></div>
 
     <script>
-        // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.ready();
 
-        // Инициализация TonConnect с твоими ссылками
+        // 1. ПРОВЕРЬ ЭТУ ССЫЛКУ! Она должна быть в точности как в терминале ngrok
+        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; 
+
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://raw.githubusercontent.com/zakariislam580-star/kvkz-p2p/refs/heads/main/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-button'
         });
 
-        // Актуальная ссылка ngrok (обновляй её здесь, если перезапускаешь ngrok)
-        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; 
-
-       async function loadAds() {
-    const container = document.getElementById('ads-container');
-    const loader = document.getElementById('loader');
-
-    console.log("Пытаюсь загрузить данные с:", API_URL); // Увидишь в консоли, куда идем
-
-    try {
-        // Убедись, что API_URL не имеет слэша в конце в переменной, 
-        // либо здесь используй правильную склейку:
-        const response = await fetch(`${API_URL}/api/ads`);
-        
-        if (!response.ok) {
-            throw new Error(`Ошибка сервера: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log("Данные получены:", data);
-
-        loader.style.display = 'none';
-        container.innerHTML = '';
-
-        if (data.status === 'ok' && data.ads && data.ads.length > 0) {
-            data.ads.forEach(ad => {
-                const card = document.createElement('div');
-                card.className = 'ad-card';
-                card.innerHTML = `
-                    <div class="ad-header">
-                        <span class="type-badge ${ad.type === 'sell' ? 'sell' : 'buy'}">
-                            ${ad.type === 'sell' ? 'Продажа' : 'Покупка'}
-                        </span>
-                        <span style="font-weight: bold;">${ad.asset}</span>
-                    </div>
-                    <div class="price">${ad.price} ${ad.currency}</div>
-                    <div class="details">
-                        Объем: ${ad.amount} ${ad.asset}<br>
-                        Лимиты: ${ad.min_limit} - ${ad.max_limit} ${ad.currency}
-                    </div>
-                    <button class="buy-btn" onclick="deal(${ad.id})">Купить</button>
-                `;
-                container.appendChild(card);
-            });
-        } else {
-            loader.innerHTML = 'Объявлений пока нет (база пуста)';
-        }
-    } catch (error) {
-        console.error('Критическая ошибка:', error);
-        loader.innerHTML = `❌ Ошибка: ${error.message}<br>Проверь соединение с сервером.`;
-        loader.style.color = 'red';
-    }
-}
-        // ... остальной код отрисовки
+        async function loadAds() {
+            const container = document.getElementById('ads-container');
+            const loader = document.getElementById('loader');
 
             try {
-                // Добавляем /api/ads к базовому URL
-                const response = await fetch(`${API_URL}/api/ads`);
-                if (!response.ok) throw new Error('Ошибка сети');
-                
+                const response = await fetch(`${API_URL}/api/ads`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'ngrok-skip-browser-warning': 'true' // Пропускаем окно ngrok
+                    }
+                });
+
+                if (!response.ok) throw new Error(`Сервер ответил кодом: ${response.status}`);
+
                 const data = await response.json();
-
                 loader.style.display = 'none';
-                container.innerHTML = '';
 
-                if (data.status === 'ok' && data.ads && data.ads.length > 0) {
+                if (data.status === 'ok' && data.ads.length > 0) {
                     data.ads.forEach(ad => {
                         const card = document.createElement('div');
                         card.className = 'ad-card';
                         card.innerHTML = `
-                            <div class="ad-header">
-                                <span class="type-badge ${ad.type === 'sell' ? 'sell' : 'buy'}">
-                                    ${ad.type === 'sell' ? 'Продажа' : 'Покупка'}
-                                </span>
-                                <span style="font-weight: bold; color: #555;">${ad.asset}</span>
+                            <div style="display:flex; justify-content:space-between">
+                                <b>${ad.type === 'sell' ? 'ПРОДАЖА' : 'ПОКУПКА'}</b>
+                                <span>${ad.asset}</span>
                             </div>
                             <div class="price">${ad.price} ${ad.currency}</div>
-                            <div class="details">
-                                <b>Объем:</b> ${ad.amount} ${ad.asset}<br>
-                                <b>Лимиты:</b> ${ad.min_limit} — ${ad.max_limit} ${ad.currency}
-                            </div>
-                            <button class="buy-btn" onclick="deal(${ad.id}, '${ad.type}')">
-                                ${ad.type === 'sell' ? 'Купить' : 'Продать'}
-                            </button>
+                            <div style="font-size:0.8rem; color: #666">Лимит: ${ad.min_limit} - ${ad.max_limit}</div>
                         `;
                         container.appendChild(card);
                     });
                 } else {
-                    container.innerHTML = '<p style="text-align:center; color:#888; margin-top: 20px;">Нет активных объявлений</p>';
+                    loader.innerHTML = 'Объявлений пока нет 📭';
                 }
-            } catch (error) {
-                console.error('Ошибка:', error);
-                loader.innerHTML = '❌ Сервер недоступен (проверь ngrok)';
-                loader.style.color = 'red';
+            } catch (err) {
+                console.error(err);
+                loader.innerHTML = `
+                    <div class="error-box">
+                        <b>❌ Ошибка загрузки:</b><br>
+                        ${err.message}<br><br>
+                        <small>Проверь, что API запущен и ссылка в коде совпадает с ngrok.</small>
+                    </div>
+                `;
             }
         }
 
-        // Функция обработки нажатия на кнопку
-        function deal(adId, type) {
-            const action = type === 'sell' ? 'покупку' : 'продажу';
-            tg.showPopup({
-                title: 'Подтверждение',
-                message: `Вы открываете сделку на ${action} (Объявление #${adId}). Продолжить?`,
-                buttons: [
-                    {id: 'ok', type: 'default', text: 'Да'},
-                    {id: 'cancel', type: 'destructive', text: 'Отмена'}
-                ]
-            });
-        }
-
-        // Запуск загрузки
         loadAds();
     </script>
 </body>
