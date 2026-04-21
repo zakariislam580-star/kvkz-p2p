@@ -6,104 +6,105 @@
     <title>KVKZ P2P Market</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f4f9; margin: 0; padding: 15px; color: #333; }
-        h2 { text-align: center; color: #0088cc; margin-top: 10px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: #333; }
         
-        #ads-container { width: 100%; max-width: 500px; margin: 0 auto; }
-        
+        /* Стили заголовка */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header h2 { margin: 0; color: #0088cc; font-size: 1.5rem; }
+        .online-status { font-size: 0.75rem; color: #28a745; display: flex; align-items: center; }
+        .online-dot { width: 8px; height: 8px; background: #28a745; border-radius: 50%; margin-right: 5px; animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+        }
+
         .ad-card {
             background: white;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            border: 1px solid #eee;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
         }
-        
-        .ad-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .bank-badge { font-size: 0.75rem; color: #666; background: #eee; padding: 2px 8px; border-radius: 4px; }
-        .asset-name { font-weight: bold; color: #444; }
-        
-        .price { font-size: 1.4rem; font-weight: bold; color: #0088cc; margin-bottom: 4px; }
-        .limits { font-size: 0.85rem; color: #888; margin-bottom: 12px; }
-        
+
+        .ad-card::before { content: ''; position: absolute; left: 0; top: 0; width: 5px; height: 100%; background: #0088cc; }
+
+        .ad-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .bank-name { font-weight: 600; color: #555; font-size: 0.9rem; }
+        .asset-badge { background: #e1f5fe; color: #039be5; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; }
+
+        .price-row { margin: 10px 0; }
+        .price-value { font-size: 1.6rem; font-weight: 800; color: #222; }
+        .price-unit { font-size: 0.9rem; color: #888; margin-left: 4px; }
+
         .buy-btn {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             background: #0088cc;
             color: white;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: 0.2s;
         }
-        .buy-btn:active { background: #0077b3; transform: scale(0.98); }
+        .buy-btn:active { transform: scale(0.96); opacity: 0.9; }
 
         /* Страница сделки */
-        #deal-page {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: white;
-            z-index: 2000;
-            padding: 20px;
-            box-sizing: border-box;
-            overflow-y: auto;
-        }
-        .back-btn { color: #0088cc; text-decoration: none; font-weight: bold; display: block; margin-bottom: 20px; }
-        .reks-box {
-            background: #f8f9fa;
-            border: 2px dashed #0088cc;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: center;
-            cursor: pointer;
-        }
-        .reks-box:active { background: #eef7ff; }
-        .reks-box b { font-size: 1.2rem; letter-spacing: 1px; color: #222; }
-        
-        .total-amount { font-size: 2rem; font-weight: bold; text-align: center; margin: 20px 0; color: #28a745; }
-        
-        #loader { text-align: center; margin-top: 50px; color: #999; }
+        #deal-page { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 25px; box-sizing: border-box; }
+        .deal-card-box { background: #f9f9f9; border-radius: 15px; padding: 20px; border: 1px solid #ddd; margin: 20px 0; }
+        .copy-hint { font-size: 0.7rem; color: #0088cc; text-align: center; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Скелетон загрузка */
+        .skeleton { height: 100px; background: #e0e0e0; border-radius: 16px; margin-bottom: 15px; animation: skeleton-loading 1.5s infinite linear; }
+        @keyframes skeleton-loading { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
     </style>
 </head>
 <body>
 
     <div id="main-page">
-        <h2>KVKZ P2P</h2>
-        <div id="loader">Загрузка объявлений...</div>
+        <div class="header">
+            <h2>KVKZ Market</h2>
+            <div class="online-status"><div class="online-dot"></div> P2P Online</div>
+        </div>
+        <div id="loader">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+        </div>
         <div id="ads-container"></div>
     </div>
 
     <div id="deal-page">
-        <a href="#" class="back-btn" onclick="closeDeal()">← Назад</a>
-        <h3>Оплата заявки</h3>
-        <p style="font-size: 0.9rem; color: #666;">Ордер забронирован. Переведите рубли по реквизитам ниже:</p>
+        <div onclick="closeDeal()" style="color: #0088cc; font-weight: bold; cursor: pointer; margin-bottom: 30px;">← ОТМЕНА</div>
+        <h3 style="margin:0;">Оплата сделки</h3>
         
-        <div class="reks-box" onclick="copyCard()">
-            <small>Банк получателя:</small><br>
-            <span id="deal-bank" style="font-weight: bold; color: #0088cc;">—</span><br><br>
-            <small>Номер карты (нажми, чтобы скопировать):</small><br>
-            <b id="deal-card">0000 0000 0000 0000</b>
+        <div class="deal-card-box" onclick="copyCard()">
+            <div style="font-size: 0.8rem; color: #888; margin-bottom: 5px;">Банк получателя</div>
+            <div id="deal-bank" style="font-weight: bold; font-size: 1.1rem; margin-bottom: 15px;">—</div>
+            
+            <div style="font-size: 0.8rem; color: #888; margin-bottom: 5px;">Реквизиты</div>
+            <div id="deal-card" style="font-size: 1.3rem; font-weight: bold; letter-spacing: 1px;">0000 0000 0000 0000</div>
+            <div class="copy-hint">Нажмите, чтобы скопировать</div>
         </div>
 
-        <div class="total-amount" id="deal-price">0 RUB</div>
+        <div style="text-align: center; margin: 30px 0;">
+            <div style="color: #888; font-size: 0.9rem;">Сумма к оплате</div>
+            <div id="deal-price" style="font-size: 2.2rem; font-weight: 900; color: #28a745;">0 RUB</div>
+        </div>
 
-        <button class="buy-btn" style="background: #28a745;" onclick="confirmPay()">Я ОПЛАТИЛ (RUB)</button>
-        
-        <p style="font-size: 0.75rem; color: #999; text-align: center; margin-top: 20px;">
-            ⚠️ Если вы не оплатите в течение 15 минут, ордер вернется в общий список.
-        </p>
+        <button class="buy-btn" style="background: #28a745;" onclick="confirmPay()">Я ОПЛАТИЛ</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.headerColor = '#ffffff';
 
-        // ЗАМЕНИ ССЫЛКУ НА СВОЙ NGROK
-        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; 
+        const API_URL = 'https://ваша_ссылка_ngrok'; // ЗАМЕНИТЬ!
         let currentAdId = null;
 
         async function loadAds() {
@@ -125,27 +126,30 @@
                         card.className = 'ad-card';
                         card.innerHTML = `
                             <div class="ad-header">
-                                <span class="asset-name">${ad.asset}</span>
-                                <span class="bank-badge">${ad.bank}</span>
+                                <span class="bank-name">${ad.bank}</span>
+                                <span class="asset-badge">${ad.asset}</span>
                             </div>
-                            <div class="price">${ad.price} RUB</div>
-                            <div class="limits">Лимит: ${ad.min_limit} - ${ad.max_limit} RUB</div>
-                            <button class="buy-btn" onclick="openDeal(${ad.id}, '${ad.bank}', '${ad.card}', '${ad.price}', '${ad.asset}')">
-                                Купить
-                            </button>
+                            <div class="price-row">
+                                <span class="price-value">${ad.price}</span>
+                                <span class="price-unit">RUB / ${ad.asset}</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: #888; margin-bottom: 15px;">
+                                Лимиты: ${ad.min_limit} - ${ad.max_limit} RUB
+                            </div>
+                            <button class="buy-btn" onclick="openDeal(${ad.id}, '${ad.bank}', '${ad.card}', '${ad.price}', '${ad.asset}')">Купить</button>
                         `;
                         container.appendChild(card);
                     });
                 } else {
-                    loader.innerHTML = 'Активных объявлений нет 📭';
+                    loader.innerHTML = '<div style="text-align:center; padding: 50px; color: #888;">Пока нет активных ордеров 🤷‍♂️</div>';
                 }
             } catch (err) {
-                loader.innerHTML = '<span style="color:red;">Ошибка соединения</span>';
+                loader.innerHTML = '<div style="color:red; text-align:center;">Ошибка подключения к API</div>';
             }
         }
 
-        // ПУНКТ №2: Бронирование ордера при открытии
         async function openDeal(id, bank, card, price, asset) {
+            tg.HapticFeedback.impactOccurred('medium');
             try {
                 const response = await fetch(`${API_URL}/api/reserve_ad`, {
                     method: 'POST',
@@ -159,59 +163,42 @@
                     document.getElementById('deal-bank').innerText = bank;
                     document.getElementById('deal-card').innerText = card;
                     document.getElementById('deal-price').innerText = `${price} RUB`;
-                    
                     document.getElementById('main-page').style.display = 'none';
                     document.getElementById('deal-page').style.display = 'block';
                 } else {
-                    tg.showAlert("Извините, этот ордер только что забронировали.");
+                    tg.showAlert("Ордер уже занят.");
                     loadAds();
                 }
-            } catch (e) {
-                tg.showAlert("Ошибка сервера при бронировании.");
-            }
+            } catch (e) { tg.showAlert("Ошибка сервера."); }
         }
 
         function closeDeal() {
             document.getElementById('deal-page').style.display = 'none';
             document.getElementById('main-page').style.display = 'block';
-            currentAdId = null;
-            loadAds(); // Обновляем список, чтобы увидеть актуальные ордера
+            loadAds();
         }
 
         function copyCard() {
             const cardNum = document.getElementById('deal-card').innerText;
             navigator.clipboard.writeText(cardNum).then(() => {
-                tg.showAlert("Номер скопирован!");
+                tg.HapticFeedback.notificationOccurred('success');
+                tg.showScanQrPopup({ text: "Номер карты скопирован!" }); // Лайфхак для визуального уведомления
+                setTimeout(() => tg.closeScanQrPopup(), 1000);
             });
         }
 
         async function confirmPay() {
-            if (!currentAdId) return;
-
-            tg.showPopup({
-                title: 'Подтверждение оплаты',
-                message: 'Вы отправили деньги продавцу?',
-                buttons: [
-                    {id: 'yes', type: 'default', text: 'Да, оплатил'},
-                    {id: 'no', type: 'destructive', text: 'Отмена'}
-                ]
-            }, async (buttonId) => {
-                if (buttonId === 'yes') {
-                    try {
-                        const response = await fetch(`${API_URL}/api/confirm_payment`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ad_id: currentAdId })
-                        });
-
-                        const result = await response.json();
-
-                        if (result.status === 'ok') {
-                            tg.showAlert("Уведомление отправлено продавцу!");
-                            closeDeal();
-                        }
-                    } catch (e) {
-                        tg.showAlert("Ошибка при подтверждении.");
+            tg.showConfirm("Вы точно перевели деньги?", async (ok) => {
+                if (ok) {
+                    const response = await fetch(`${API_URL}/api/confirm_payment`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ad_id: currentAdId })
+                    });
+                    const res = await response.json();
+                    if (res.status === 'ok') {
+                        tg.showAlert("Продавец уведомлен!");
+                        closeDeal();
                     }
                 }
             });
