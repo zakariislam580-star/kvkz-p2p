@@ -91,9 +91,17 @@
         // Актуальная ссылка ngrok (обновляй её здесь, если перезапускаешь ngrok)
         const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; 
 
-        async function loadAds() {
-            const container = document.getElementById('ads-container');
-            const loader = document.getElementById('loader');
+       async function loadAds() {
+    const container = document.getElementById('ads-container');
+    const loader = document.getElementById('loader');
+
+    try {
+        // Добавляем случайное число ?t=..., чтобы браузер всегда делал свежий запрос
+        const response = await fetch(`${API_URL}/api/ads?t=${new Date().getTime()}`);
+        if (!response.ok) throw new Error('Ошибка сети');
+        
+        const data = await response.json();
+        // ... остальной код отрисовки
 
             try {
                 // Добавляем /api/ads к базовому URL
