@@ -1,60 +1,157 @@
-<div id="ads-container" style="margin-top: 30px;">
-    <h3>Активные объявления</h3>
-    <div id="ads-list">Загрузка данных из базы...</div>
-</div>
-
-<script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    // 1. Настройка TonConnect (твоя рабочая часть)
-    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-        manifestUrl: 'https://raw.githubusercontent.com/zakariislam580-star/kvkz-p2p/refs/heads/main/tonconnect-manifest.json',
-        buttonRootId: 'ton-connect-button'
-    });
-
-    // 2. Функция для получения объявлений из твоего API
-    async function loadAds() {
-        const adsList = document.getElementById('ads-list');
-        
-        // ВАЖНО: Замени ссылку на свою из ngrok!
-        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev/api/ads';
-
-        try {
-            const response = await fetch(API_URL);
-            const data = await response.json();
-
-            if (data.status === 'ok' && data.ads.length > 0) {
-                adsList.innerHTML = ''; // Очищаем текст загрузки
-                
-                data.ads.forEach(ad => {
-                    const card = document.createElement('div');
-                    card.style = "background: #f4f4f4; padding: 15px; border-radius: 12px; margin-bottom: 10px; text-align: left; border: 1px solid #ddd;";
-                    
-                    card.innerHTML = `
-                        <div style="display: flex; justify-content: space-between;">
-                            <b>${ad.type === 'buy' ? '🟢 КУПИТЬ' : '🔴 ПРОДАТЬ'} ${ad.asset}</b>
-                            <span style="color: #666;">#${ad.id}</span>
-                        </div>
-                        <div style="margin-top: 5px; font-size: 18px;"><b>${ad.price} ${ad.currency}</b></div>
-                        <div style="font-size: 12px; color: #888;">Лимиты: ${ad.min_limit} - ${ad.max_limit}</div>
-                        <button onclick="buyAction(${ad.id})" style="width: 100%; margin-top: 10px; padding: 8px; border-radius: 8px; border: none; background: #007bff; color: white;">Выбрать</button>
-                    `;
-                    adsList.appendChild(card);
-                });
-            } else {
-                adsList.innerHTML = 'Пока нет активных объявлений.';
-            }
-        } catch (error) {
-            console.error('Ошибка:', error);
-            adsList.innerHTML = '<span style="color: red;">Ошибка подключения к API. Проверь ngrok!</span>';
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KVKZ P2P Market</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-    }
+        h1 { font-size: 1.5rem; color: #0088cc; margin-bottom: 20px; }
+        
+        #ton-connect-button { 
+            margin-bottom: 25px; 
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
 
-    function buyAction(adId) {
-        tg.showAlert("Вы выбрали ордер #" + adId + ". Теперь нужно подтвердить сделку!");
-    }
+        #ads-container { width: 100%; max-width: 500px; }
+        
+        .ad-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+        .ad-header { display: flex; justify-content: space-between; align-items: center; }
+        .type-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .sell { background: #ffebee; color: #d32f2f; }
+        .buy { background: #e8f5e9; color: #388e3c; }
+        
+        .price { font-size: 1.2rem; font-weight: bold; margin: 12px 0; }
+        .details { font-size: 0.85rem; color: #666; margin-bottom: 12px; line-height: 1.4; }
+        
+        .buy-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #0088cc;
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .buy-btn:active { transform: scale(0.98); background: #0077b3; }
+        
+        #loader { margin-top: 40px; color: #888; font-style: italic; }
+    </style>
+</head>
+<body>
 
-    // Запускаем загрузку сразу
-    loadAds();
-</script>
+    <h1>KVKZ P2P MARKET</h1>
+    
+    <div id="ton-connect-button"></div>
+
+    <div id="loader">Загрузка объявлений...</div>
+    <div id="ads-container"></div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Инициализация TonConnect с твоими ссылками
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://raw.githubusercontent.com/zakariislam580-star/kvkz-p2p/refs/heads/main/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-button'
+        });
+
+        // Актуальная ссылка ngrok (обновляй её здесь, если перезапускаешь ngrok)
+        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; 
+
+        async function loadAds() {
+            const container = document.getElementById('ads-container');
+            const loader = document.getElementById('loader');
+
+            try {
+                // Добавляем /api/ads к базовому URL
+                const response = await fetch(`${API_URL}/api/ads`);
+                if (!response.ok) throw new Error('Ошибка сети');
+                
+                const data = await response.json();
+
+                loader.style.display = 'none';
+                container.innerHTML = '';
+
+                if (data.status === 'ok' && data.ads && data.ads.length > 0) {
+                    data.ads.forEach(ad => {
+                        const card = document.createElement('div');
+                        card.className = 'ad-card';
+                        card.innerHTML = `
+                            <div class="ad-header">
+                                <span class="type-badge ${ad.type === 'sell' ? 'sell' : 'buy'}">
+                                    ${ad.type === 'sell' ? 'Продажа' : 'Покупка'}
+                                </span>
+                                <span style="font-weight: bold; color: #555;">${ad.asset}</span>
+                            </div>
+                            <div class="price">${ad.price} ${ad.currency}</div>
+                            <div class="details">
+                                <b>Объем:</b> ${ad.amount} ${ad.asset}<br>
+                                <b>Лимиты:</b> ${ad.min_limit} — ${ad.max_limit} ${ad.currency}
+                            </div>
+                            <button class="buy-btn" onclick="deal(${ad.id}, '${ad.type}')">
+                                ${ad.type === 'sell' ? 'Купить' : 'Продать'}
+                            </button>
+                        `;
+                        container.appendChild(card);
+                    });
+                } else {
+                    container.innerHTML = '<p style="text-align:center; color:#888; margin-top: 20px;">Нет активных объявлений</p>';
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                loader.innerHTML = '❌ Сервер недоступен (проверь ngrok)';
+                loader.style.color = 'red';
+            }
+        }
+
+        // Функция обработки нажатия на кнопку
+        function deal(adId, type) {
+            const action = type === 'sell' ? 'покупку' : 'продажу';
+            tg.showPopup({
+                title: 'Подтверждение',
+                message: `Вы открываете сделку на ${action} (Объявление #${adId}). Продолжить?`,
+                buttons: [
+                    {id: 'ok', type: 'default', text: 'Да'},
+                    {id: 'cancel', type: 'destructive', text: 'Отмена'}
+                ]
+            });
+        }
+
+        // Запуск загрузки
+        loadAds();
+    </script>
+</body>
+</html>
