@@ -2,82 +2,106 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KVKZ P2P Market</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>KVKZ P2P</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        #ton-connect-button { margin-bottom: 20px; }
-        .ad-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 10px; width: 100%; max-width: 400px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .price { font-size: 1.2rem; font-weight: bold; color: #0088cc; }
-        .error-box { color: #d32f2f; background: #ffebee; padding: 15px; border-radius: 8px; font-size: 0.9rem; width: 100%; max-width: 400px; word-break: break-all; }
-        #loader { color: #666; margin-top: 50px; }
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
+        .ad-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .price { font-size: 1.3rem; font-weight: bold; color: #0088cc; margin: 8px 0; }
+        .buy-btn { width: 100%; background: #0088cc; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 1rem; }
+        
+        /* Модальное окно сделки */
+        #deal-page {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 2000; padding: 20px; box-sizing: border-box;
+        }
+        .reks-container { background: #f8f9fa; border: 1px dashed #0088cc; border-radius: 10px; padding: 15px; margin: 20px 0; }
+        .back-link { color: #0088cc; text-decoration: none; display: block; margin-bottom: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="ton-connect-button"></div>
-    <div id="loader">Загрузка объявлений...</div>
-    <div id="ads-container"></div>
+    <div id="main-page">
+        <h2 style="text-align:center;">P2P Маркет (RUB)</h2>
+        <div id="ads-container"></div>
+    </div>
+
+    <div id="deal-page">
+        <a href="#" class="back-link" onclick="closeDeal()">← Назад к списку</a>
+        <h3>Оплата ордера RUB</h3>
+        <p>Переведите точную сумму через ваш банк на указанные реквизиты:</p>
+        
+        <div class="reks-container">
+            <small>Банк получателя:</small><br>
+            <b id="deal-bank">Т-Банк</b><br><br>
+            <small>Номер карты / СБП:</small><br>
+            <b id="deal-card" style="font-size: 1.2rem;">0000 0000 0000 0000</b>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+            <small>К оплате:</small><br>
+            <span id="deal-price" style="font-size: 1.8rem; font-weight: bold;">0 RUB</span>
+        </div>
+
+        <button class="buy-btn" style="background:#28a745;" onclick="confirmPay()">Я ОПЛАТИЛ</button>
+        <p style="font-size:0.75rem; color:#888; text-align:center; margin-top:15px;">
+            Система эскроу заморозила активы продавца до завершения сделки.
+        </p>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // 1. ПРОВЕРЬ ЭТУ ССЫЛКУ! Она должна быть в точности как в терминале ngrok
-        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; 
-
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://raw.githubusercontent.com/zakariislam580-star/kvkz-p2p/refs/heads/main/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-button'
-        });
+        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; // ПРОВЕРЬ ССЫЛКУ!
 
         async function loadAds() {
+            const resp = await fetch(`${API_URL}/api/ads`, { headers: {'ngrok-skip-browser-warning': 'true'} });
+            const data = await resp.json();
             const container = document.getElementById('ads-container');
-            const loader = document.getElementById('loader');
+            container.innerHTML = '';
 
-            try {
-                const response = await fetch(`${API_URL}/api/ads`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'ngrok-skip-browser-warning': 'true' // Пропускаем окно ngrok
-                    }
-                });
-
-                if (!response.ok) throw new Error(`Сервер ответил кодом: ${response.status}`);
-
-                const data = await response.json();
-                loader.style.display = 'none';
-
-                if (data.status === 'ok' && data.ads.length > 0) {
-                    data.ads.forEach(ad => {
-                        const card = document.createElement('div');
-                        card.className = 'ad-card';
-                        card.innerHTML = `
-                            <div style="display:flex; justify-content:space-between">
-                                <b>${ad.type === 'sell' ? 'ПРОДАЖА' : 'ПОКУПКА'}</b>
-                                <span>${ad.asset}</span>
-                            </div>
-                            <div class="price">${ad.price} ${ad.currency}</div>
-                            <div style="font-size:0.8rem; color: #666">Лимит: ${ad.min_limit} - ${ad.max_limit}</div>
-                        `;
-                        container.appendChild(card);
-                    });
-                } else {
-                    loader.innerHTML = 'Объявлений пока нет 📭';
-                }
-            } catch (err) {
-                console.error(err);
-                loader.innerHTML = `
-                    <div class="error-box">
-                        <b>❌ Ошибка загрузки:</b><br>
-                        ${err.message}<br><br>
-                        <small>Проверь, что API запущен и ссылка в коде совпадает с ngrok.</small>
+            data.ads.forEach(ad => {
+                const card = document.createElement('div');
+                card.className = 'ad-card';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#666">
+                        <span><b>${ad.type.toUpperCase()}</b></span>
+                        <span>${ad.bank}</span>
                     </div>
+                    <div class="price">${ad.price} RUB / ${ad.asset}</div>
+                    <div style="margin-bottom:10px; font-size:0.9rem">Лимит: ${ad.min_limit} - ${ad.max_limit}</div>
+                    <button class="buy-btn" onclick="openDeal('${ad.bank}', '${ad.card}', '${ad.price}', '${ad.asset}')">КУПИТЬ</button>
                 `;
-            }
+                container.appendChild(card);
+            });
+        }
+
+        function openDeal(bank, card, price, asset) {
+            document.getElementById('deal-bank').innerText = bank;
+            document.getElementById('deal-card').innerText = card;
+            document.getElementById('deal-price').innerText = `${price} RUB`;
+            document.getElementById('main-page').style.display = 'none';
+            document.getElementById('deal-page').style.display = 'block';
+        }
+
+        function closeDeal() {
+            document.getElementById('deal-page').style.display = 'none';
+            document.getElementById('main-page').style.display = 'block';
+        }
+
+        function confirmPay() {
+            tg.showPopup({
+                title: 'Подтверждение',
+                message: 'Вы точно отправили рубли? Ошибка может привести к блокировке.',
+                buttons: [{id: 'ok', type: 'default', text: 'Да, оплатил'}, {type: 'cancel'}]
+            }, (id) => {
+                if(id === 'ok') {
+                    tg.showAlert("Продавец уведомлен! Ожидайте подтверждения.");
+                    closeDeal();
+                }
+            });
         }
 
         loadAds();
