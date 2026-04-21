@@ -59,8 +59,11 @@
             padding: 20px;
             margin: 20px 0;
             text-align: center;
+            cursor: pointer;
         }
+        .reks-box:active { background: #eef7ff; }
         .reks-box b { font-size: 1.2rem; letter-spacing: 1px; color: #222; }
+        
         .total-amount { font-size: 2rem; font-weight: bold; text-align: center; margin: 20px 0; color: #28a745; }
         
         #loader { text-align: center; margin-top: 50px; color: #999; }
@@ -77,12 +80,12 @@
     <div id="deal-page">
         <a href="#" class="back-btn" onclick="closeDeal()">← Назад</a>
         <h3>Оплата заявки</h3>
-        <p style="font-size: 0.9rem; color: #666;">Переведите рубли по указанным реквизитам через ваш банк:</p>
+        <p style="font-size: 0.9rem; color: #666;">Ордер забронирован. Переведите рубли по реквизитам ниже:</p>
         
-        <div class="reks-box">
+        <div class="reks-box" onclick="copyCard()">
             <small>Банк получателя:</small><br>
             <span id="deal-bank" style="font-weight: bold; color: #0088cc;">—</span><br><br>
-            <small>Номер карты / СБП:</small><br>
+            <small>Номер карты (нажми, чтобы скопировать):</small><br>
             <b id="deal-card">0000 0000 0000 0000</b>
         </div>
 
@@ -90,8 +93,8 @@
 
         <button class="buy-btn" style="background: #28a745;" onclick="confirmPay()">Я ОПЛАТИЛ (RUB)</button>
         
-        <p style="font-size: 0.7rem; color: #999; text-align: center; margin-top: 20px;">
-            После нажатия кнопки продавец получит уведомление. Активы будут зачислены после подтверждения продавцом.
+        <p style="font-size: 0.75rem; color: #999; text-align: center; margin-top: 20px;">
+            ⚠️ Если вы не оплатите в течение 15 минут, ордер вернется в общий список.
         </p>
     </div>
 
@@ -99,6 +102,7 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        // ЗАМЕНИ ССЫЛКУ НА СВОЙ NGROK
         const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; 
         let currentAdId = null;
 
@@ -136,24 +140,49 @@
                     loader.innerHTML = 'Активных объявлений нет 📭';
                 }
             } catch (err) {
-                loader.innerHTML = '<span style="color:red;">Ошибка соединения с сервером</span>';
+                loader.innerHTML = '<span style="color:red;">Ошибка соединения</span>';
             }
         }
 
-        function openDeal(id, bank, card, price, asset) {
-            currentAdId = id;
-            document.getElementById('deal-bank').innerText = bank;
-            document.getElementById('deal-card').innerText = card;
-            document.getElementById('deal-price').innerText = `${price} RUB`;
-            
-            document.getElementById('main-page').style.display = 'none';
-            document.getElementById('deal-page').style.display = 'block';
+        // ПУНКТ №2: Бронирование ордера при открытии
+        async function openDeal(id, bank, card, price, asset) {
+            try {
+                const response = await fetch(`${API_URL}/api/reserve_ad`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ad_id: id })
+                });
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    currentAdId = id;
+                    document.getElementById('deal-bank').innerText = bank;
+                    document.getElementById('deal-card').innerText = card;
+                    document.getElementById('deal-price').innerText = `${price} RUB`;
+                    
+                    document.getElementById('main-page').style.display = 'none';
+                    document.getElementById('deal-page').style.display = 'block';
+                } else {
+                    tg.showAlert("Извините, этот ордер только что забронировали.");
+                    loadAds();
+                }
+            } catch (e) {
+                tg.showAlert("Ошибка сервера при бронировании.");
+            }
         }
 
         function closeDeal() {
             document.getElementById('deal-page').style.display = 'none';
             document.getElementById('main-page').style.display = 'block';
             currentAdId = null;
+            loadAds(); // Обновляем список, чтобы увидеть актуальные ордера
+        }
+
+        function copyCard() {
+            const cardNum = document.getElementById('deal-card').innerText;
+            navigator.clipboard.writeText(cardNum).then(() => {
+                tg.showAlert("Номер скопирован!");
+            });
         }
 
         async function confirmPay() {
@@ -161,7 +190,7 @@
 
             tg.showPopup({
                 title: 'Подтверждение оплаты',
-                message: 'Вы точно отправили рубли продавцу? Ложные подтверждения ведут к блокировке.',
+                message: 'Вы отправили деньги продавцу?',
                 buttons: [
                     {id: 'yes', type: 'default', text: 'Да, оплатил'},
                     {id: 'no', type: 'destructive', text: 'Отмена'}
@@ -178,19 +207,16 @@
                         const result = await response.json();
 
                         if (result.status === 'ok') {
-                            tg.showAlert("Уведомление отправлено продавцу. Ожидайте зачисления!");
+                            tg.showAlert("Уведомление отправлено продавцу!");
                             closeDeal();
-                        } else {
-                            tg.showAlert("Ошибка: " + result.message);
                         }
                     } catch (e) {
-                        tg.showAlert("Не удалось связаться с сервером.");
+                        tg.showAlert("Ошибка при подтверждении.");
                     }
                 }
             });
         }
 
-        // Запуск
         loadAds();
     </script>
 </body>
