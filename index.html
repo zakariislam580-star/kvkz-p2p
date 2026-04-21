@@ -1,36 +1,60 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KVKZ P2P Market</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    <style>
-        body { font-family: sans-serif; background: #ffffff; color: #000; text-align: center; padding: 40px 20px; }
-        #ton-connect-button { display: flex; justify-content: center; margin-bottom: 20px; }
-        .info { background: #f4f4f4; padding: 15px; border-radius: 10px; font-size: 14px; }
-    </style>
-</head>
-<body>
-    <h1>KVKZ P2P</h1>
-    <div id="ton-connect-button"></div>
-    <div class="info" id="status">Ожидание подключения кошелька...</div>
+<div id="ads-container" style="margin-top: 30px;">
+    <h3>Активные объявления</h3>
+    <div id="ads-list">Загрузка данных из базы...</div>
+</div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://raw.githubusercontent.com/zakariislam580-star/kvkz-p2p/refs/heads/main/tonconnect-manifest.json?v=2',
-            buttonRootId: 'ton-connect-button'
-        });
+    // 1. Настройка TonConnect (твоя рабочая часть)
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: 'https://raw.githubusercontent.com/zakariislam580-star/kvkz-p2p/refs/heads/main/tonconnect-manifest.json',
+        buttonRootId: 'ton-connect-button'
+    });
 
-        tonConnectUI.onStatusChange(wallet => {
-            if (wallet) {
-                document.getElementById('status').innerText = 'Кошелек: ' + wallet.account.address.substring(0, 8) + '...';
+    // 2. Функция для получения объявлений из твоего API
+    async function loadAds() {
+        const adsList = document.getElementById('ads-list');
+        
+        // ВАЖНО: Замени ссылку на свою из ngrok!
+        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev/api/ads';
+
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+
+            if (data.status === 'ok' && data.ads.length > 0) {
+                adsList.innerHTML = ''; // Очищаем текст загрузки
+                
+                data.ads.forEach(ad => {
+                    const card = document.createElement('div');
+                    card.style = "background: #f4f4f4; padding: 15px; border-radius: 12px; margin-bottom: 10px; text-align: left; border: 1px solid #ddd;";
+                    
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between;">
+                            <b>${ad.type === 'buy' ? '🟢 КУПИТЬ' : '🔴 ПРОДАТЬ'} ${ad.asset}</b>
+                            <span style="color: #666;">#${ad.id}</span>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 18px;"><b>${ad.price} ${ad.currency}</b></div>
+                        <div style="font-size: 12px; color: #888;">Лимиты: ${ad.min_limit} - ${ad.max_limit}</div>
+                        <button onclick="buyAction(${ad.id})" style="width: 100%; margin-top: 10px; padding: 8px; border-radius: 8px; border: none; background: #007bff; color: white;">Выбрать</button>
+                    `;
+                    adsList.appendChild(card);
+                });
+            } else {
+                adsList.innerHTML = 'Пока нет активных объявлений.';
             }
-        });
-    </script>
-</body>
-</html>
+        } catch (error) {
+            console.error('Ошибка:', error);
+            adsList.innerHTML = '<span style="color: red;">Ошибка подключения к API. Проверь ngrok!</span>';
+        }
+    }
+
+    function buyAction(adId) {
+        tg.showAlert("Вы выбрали ордер #" + adId + ". Теперь нужно подтвердить сделку!");
+    }
+
+    // Запускаем загрузку сразу
+    loadAds();
+</script>
