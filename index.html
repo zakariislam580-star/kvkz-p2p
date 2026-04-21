@@ -8,7 +8,6 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: #333; }
         
-        /* Стили заголовка */
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .header h2 { margin: 0; color: #0088cc; font-size: 1.5rem; }
         .online-status { font-size: 0.75rem; color: #28a745; display: flex; align-items: center; }
@@ -27,10 +26,7 @@
             margin-bottom: 15px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             position: relative;
-            overflow: hidden;
         }
-
-        .ad-card::before { content: ''; position: absolute; left: 0; top: 0; width: 5px; height: 100%; background: #0088cc; }
 
         .ad-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .bank-name { font-weight: 600; color: #555; font-size: 0.9rem; }
@@ -38,7 +34,6 @@
 
         .price-row { margin: 10px 0; }
         .price-value { font-size: 1.6rem; font-weight: 800; color: #222; }
-        .price-unit { font-size: 0.9rem; color: #888; margin-left: 4px; }
 
         .buy-btn {
             width: 100%;
@@ -53,14 +48,25 @@
         }
         .buy-btn:active { transform: scale(0.96); opacity: 0.9; }
 
-        /* Страница сделки */
-        #deal-page { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 25px; box-sizing: border-box; }
-        .deal-card-box { background: #f9f9f9; border-radius: 15px; padding: 20px; border: 1px solid #ddd; margin: 20px 0; }
-        .copy-hint { font-size: 0.7rem; color: #0088cc; text-align: center; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        /* Страницы */
+        #deal-page, #wait-page { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 2000; padding: 25px; box-sizing: border-box; }
+        
+        .deal-card-box { background: #f9f9f9; border-radius: 15px; padding: 20px; border: 1px solid #ddd; margin: 20px 0; text-align: center; }
+        .copy-hint { font-size: 0.7rem; color: #0088cc; margin-top: 8px; text-transform: uppercase; }
 
-        /* Скелетон загрузка */
         .skeleton { height: 100px; background: #e0e0e0; border-radius: 16px; margin-bottom: 15px; animation: skeleton-loading 1.5s infinite linear; }
         @keyframes skeleton-loading { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0088cc;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -73,26 +79,32 @@
         <div id="loader">
             <div class="skeleton"></div>
             <div class="skeleton"></div>
-            <div class="skeleton"></div>
         </div>
         <div id="ads-container"></div>
     </div>
 
+    <div id="wait-page">
+        <div style="text-align: center; margin-top: 100px;">
+            <div class="loading-spinner"></div>
+            <h3>Ожидание подтверждения</h3>
+            <p style="color: #666;">Запрос отправлен продавцу. Как только он примет сделку, здесь появятся реквизиты.</p>
+            <button class="buy-btn" style="background: #ccc;" onclick="closeWait()">Отмена</button>
+        </div>
+    </div>
+
     <div id="deal-page">
-        <div onclick="closeDeal()" style="color: #0088cc; font-weight: bold; cursor: pointer; margin-bottom: 30px;">← ОТМЕНА</div>
+        <div onclick="closeDeal()" style="color: #0088cc; font-weight: bold; cursor: pointer; margin-bottom: 30px;">← НАЗАД</div>
         <h3 style="margin:0;">Оплата сделки</h3>
         
         <div class="deal-card-box" onclick="copyCard()">
-            <div style="font-size: 0.8rem; color: #888; margin-bottom: 5px;">Банк получателя</div>
+            <div style="font-size: 0.8rem; color: #888; margin-bottom: 5px;">Банк</div>
             <div id="deal-bank" style="font-weight: bold; font-size: 1.1rem; margin-bottom: 15px;">—</div>
-            
             <div style="font-size: 0.8rem; color: #888; margin-bottom: 5px;">Реквизиты</div>
             <div id="deal-card" style="font-size: 1.3rem; font-weight: bold; letter-spacing: 1px;">0000 0000 0000 0000</div>
-            <div class="copy-hint">Нажмите, чтобы скопировать</div>
+            <div class="copy-hint">Нажми, чтобы скопировать</div>
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-            <div style="color: #888; font-size: 0.9rem;">Сумма к оплате</div>
             <div id="deal-price" style="font-size: 2.2rem; font-weight: 900; color: #28a745;">0 RUB</div>
         </div>
 
@@ -102,21 +114,19 @@
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.headerColor = '#ffffff';
 
-        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; // ЗАМЕНИТЬ!
+        // ОБЯЗАТЕЛЬНО ОБНОВИ ССЫЛКУ NGROK
+        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; 
         let currentAdId = null;
 
         async function loadAds() {
             const container = document.getElementById('ads-container');
             const loader = document.getElementById('loader');
-
             try {
                 const response = await fetch(`${API_URL}/api/ads`, {
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 });
                 const data = await response.json();
-
                 loader.style.display = 'none';
                 container.innerHTML = '';
 
@@ -130,46 +140,74 @@
                                 <span class="asset-badge">${ad.asset}</span>
                             </div>
                             <div class="price-row">
-                                <span class="price-value">${ad.price}</span>
-                                <span class="price-unit">RUB / ${ad.asset}</span>
+                                <span class="price-value">${ad.price} RUB</span>
                             </div>
-                            <div style="font-size: 0.8rem; color: #888; margin-bottom: 15px;">
-                                Лимиты: ${ad.min_limit} - ${ad.max_limit} RUB
-                            </div>
-                            <button class="buy-btn" onclick="openDeal(${ad.id}, '${ad.bank}', '${ad.card}', '${ad.price}', '${ad.asset}')">Купить</button>
+                            <button class="buy-btn" onclick="requestDeal(${ad.id}, '${ad.bank}', '${ad.card}', '${ad.price}')">Купить</button>
                         `;
                         container.appendChild(card);
                     });
                 } else {
-                    loader.innerHTML = '<div style="text-align:center; padding: 50px; color: #888;">Пока нет активных ордеров 🤷‍♂️</div>';
+                    loader.innerHTML = '<div style="text-align:center; padding: 50px;">Ордеров нет</div>';
                 }
-            } catch (err) {
-                loader.innerHTML = '<div style="color:red; text-align:center;">Ошибка подключения к API</div>';
-            }
+            } catch (err) { loader.innerHTML = 'Ошибка API'; }
         }
 
-        async function openDeal(id, bank, card, price, asset) {
+        // Этап 1: Запрос мейкеру
+        async function requestDeal(id, bank, card, price) {
             tg.HapticFeedback.impactOccurred('medium');
+            
             try {
-                const response = await fetch(`${API_URL}/api/reserve_ad`, {
+                const response = await fetch(`${API_URL}/api/request_deal`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ad_id: id })
+                    body: JSON.stringify({ 
+                        ad_id: id, 
+                        buyer_id: tg.initDataUnsafe.user.id,
+                        buyer_name: tg.initDataUnsafe.user.first_name 
+                    })
                 });
                 const result = await response.json();
 
                 if (result.status === 'ok') {
                     currentAdId = id;
+                    // Подготавливаем данные для страницы оплаты заранее
                     document.getElementById('deal-bank').innerText = bank;
                     document.getElementById('deal-card').innerText = card;
                     document.getElementById('deal-price').innerText = `${price} RUB`;
+                    
                     document.getElementById('main-page').style.display = 'none';
-                    document.getElementById('deal-page').style.display = 'block';
+                    document.getElementById('wait-page').style.display = 'block';
+                    
+                    // Начинаем проверять, принял ли мейкер
+                    startStatusCheck();
                 } else {
-                    tg.showAlert("Ордер уже занят.");
-                    loadAds();
+                    tg.showAlert("Ордер недоступен");
                 }
-            } catch (e) { tg.showAlert("Ошибка сервера."); }
+            } catch (e) { tg.showAlert("Ошибка сервера"); }
+        }
+
+        // Проверка статуса (принял ли продавец)
+        let checkInterval;
+        function startStatusCheck() {
+            checkInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_URL}/api/ads`, {
+                        headers: { 'ngrok-skip-browser-warning': 'true' }
+                    });
+                    const data = await response.json();
+                    
+                    // Ищем наш ордер. Если он перешел в 'pending', значит мейкер нажал ПРИНЯТЬ
+                    // (так как в load_ads только active, нам нужно будет добавить метод проверки статуса одного ордера, 
+                    // но для теста пока сделаем через уведомление в боте)
+                    // Сейчас мы просто ждем, пока покупатель получит сообщение в боте и переоткроет апп.
+                } catch (e) {}
+            }, 3000);
+        }
+
+        function closeWait() {
+            document.getElementById('wait-page').style.display = 'none';
+            document.getElementById('main-page').style.display = 'block';
+            clearInterval(checkInterval);
         }
 
         function closeDeal() {
@@ -182,24 +220,20 @@
             const cardNum = document.getElementById('deal-card').innerText;
             navigator.clipboard.writeText(cardNum).then(() => {
                 tg.HapticFeedback.notificationOccurred('success');
-                tg.showScanQrPopup({ text: "Номер карты скопирован!" }); // Лайфхак для визуального уведомления
-                setTimeout(() => tg.closeScanQrPopup(), 1000);
+                tg.showAlert("Скопировано!");
             });
         }
 
         async function confirmPay() {
-            tg.showConfirm("Вы точно перевели деньги?", async (ok) => {
+            tg.showConfirm("Деньги отправлены?", async (ok) => {
                 if (ok) {
-                    const response = await fetch(`${API_URL}/api/confirm_payment`, {
+                    await fetch(`${API_URL}/api/confirm_payment`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ ad_id: currentAdId })
                     });
-                    const res = await response.json();
-                    if (res.status === 'ok') {
-                        tg.showAlert("Продавец уведомлен!");
-                        closeDeal();
-                    }
+                    tg.showAlert("Продавец уведомлен!");
+                    closeDeal();
                 }
             });
         }
