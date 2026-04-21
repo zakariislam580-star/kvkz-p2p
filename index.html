@@ -1,49 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>KVKZ P2P Market</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; padding: 15px; }
-        .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn { width: 100%; padding: 12px; background: #0088cc; color: white; border: none; border-radius: 8px; font-weight: bold; }
+        :root {
+            --tg-theme-button-color: #0088cc;
+            --tg-theme-button-text-color: #ffffff;
+            --tg-theme-bg-color: #f0f2f5;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: var(--tg-theme-bg-color); 
+            margin: 0; padding: 15px; color: #333; 
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header h2 { margin: 0; color: #0088cc; }
+        
+        .ad-card {
+            background: white; border-radius: 12px; padding: 16px;
+            margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .ad-info { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .bank-name { font-weight: bold; color: #666; font-size: 0.9rem; }
+        .asset-name { font-weight: 900; color: #0088cc; }
+        .price-text { font-size: 1.6rem; font-weight: 800; margin: 8px 0; }
+        
+        .buy-btn {
+            width: 100%; padding: 12px; border: none; border-radius: 10px;
+            background: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            font-weight: bold; font-size: 1rem; cursor: pointer;
+        }
+        .buy-btn:active { opacity: 0.8; transform: scale(0.98); }
+        #loader { text-align: center; margin-top: 50px; color: #888; }
     </style>
 </head>
 <body>
-    <div id="ads"></div>
+
+    <div class="header">
+        <h2>KVKZ P2P</h2>
+        <div id="user-badge" style="font-size: 0.8rem;"></div>
+    </div>
+
+    <div id="loader">🔄 Загрузка маркета...</div>
+    <div id="ads-container"></div>
+
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        const API = 'https://subsoil-life-iron.ngrok-free.dev'; // <--- ОБНОВИ ЭТО
+        tg.ready();
 
-        async function load() {
-            const res = await fetch(`${API}/api/ads`, {headers: {'ngrok-skip-browser-warning': 'true'}});
-            const data = await res.json();
-            const cont = document.getElementById('ads');
-            cont.innerHTML = data.ads.map(ad => `
-                <div class="card">
-                    <b>${ad.bank}</b> | ${ad.asset}<br>
-                    <h3>${ad.price} RUB</h3>
-                    <button class="btn" onclick="buy(${ad.id})">Купить</button>
-                </div>
-            `).join('');
+        // --- ОБЯЗАТЕЛЬНО ОБНОВИ ЭТУ ССЫЛКУ ПРИ ПЕРЕЗАПУСКЕ NGROK ---
+        const API_URL = 'https://ТВОЯ-ССЫЛКА.ngrok-free.app'; 
+
+        // Отображение имени пользователя в шапке (для проверки)
+        const user = tg.initDataUnsafe?.user;
+        if (user) {
+            document.getElementById('user-badge').innerText = `👋 ${user.first_name}`;
         }
 
-        async function buy(id) {
-            const user = tg.initDataUnsafe?.user;
-            if (!user) return tg.showAlert("Ошибка: Запустите через бота!");
+        async function loadAds() {
+            const container = document.getElementById('ads-container');
+            const loader = document.getElementById('loader');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/ads`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
+                const data = await response.json();
+                
+                loader.style.display = 'none';
+                container.innerHTML = '';
 
-            const res = await fetch(`${API}/api/request_deal`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ad_id: id, buyer_id: user.id, buyer_name: user.first_name })
-            });
-            const result = await res.json();
-            if (result.status === 'ok') tg.showAlert("Запрос отправлен! Ждите ответа в боте.");
-            else tg.showAlert("Ошибка: " + result.message);
+                if (data.status === 'ok' && data.ads.length > 0) {
+                    data.ads.forEach(ad => {
+                        const card = document.createElement('div');
+                        card.className = 'ad-card';
+                        card.innerHTML = `
+                            <div class="ad-info">
+                                <span class="bank-name">🏦 ${ad.bank}</span>
+                                <span class="asset-name">${ad.asset}</span>
+                            </div>
+                            <div class="price-text">${ad.price} RUB</div>
+                            <button class="buy-btn" onclick="buy(${ad.id})">Купить</button>
+                        `;
+                        container.appendChild(card);
+                    });
+                } else {
+                    container.innerHTML = '<p style="text-align:center;">Ордеров пока нет</p>';
+                }
+            } catch (err) {
+                loader.innerHTML = '❌ Ошибка подключения. Проверьте ngrok.';
+                console.error(err);
+            }
         }
-        load();
+
+        async function buy(adId) {
+            tg.HapticFeedback.impactOccurred('heavy');
+
+            // Полная проверка данных пользователя
+            const currentUser = tg.initDataUnsafe?.user;
+            
+            if (!currentUser || !currentUser.id) {
+                // Если данных нет, показываем подробную ошибку
+                const debugInfo = tg.initData ? "Данные зашифрованы" : "Данные отсутствуют полностью";
+                tg.showAlert(`⚠️ Ошибка авторизации!\n\nTelegram не передал ваш ID.\nСтатус: ${debugInfo}\n\nПопробуйте перезапустить бота командой /start`);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/request_deal`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        ad_id: adId, 
+                        buyer_id: currentUser.id,
+                        buyer_name: currentUser.first_name || "Покупатель"
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'ok') {
+                    tg.showAlert("✅ Запрос отправлен!\n\nПродавец получил уведомление. Когда он примет сделку, вам придет сообщение от бота.");
+                } else {
+                    tg.showAlert("❌ Ошибка: " + result.message);
+                }
+            } catch (error) {
+                tg.showAlert("🛰 Ошибка сервера. Проверьте терминал api.py и ngrok.");
+            }
+        }
+
+        // Запуск
+        loadAds();
     </script>
 </body>
 </html>
