@@ -3,50 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>KVKZ P2P</title>
+    <title>KVKZ P2P Market</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
-        .ad-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .price { font-size: 1.3rem; font-weight: bold; color: #0088cc; margin: 8px 0; }
-        .buy-btn { width: 100%; background: #0088cc; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 1rem; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f4f9; margin: 0; padding: 15px; color: #333; }
+        h2 { text-align: center; color: #0088cc; margin-top: 10px; }
         
-        /* Модальное окно сделки */
-        #deal-page {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; z-index: 2000; padding: 20px; box-sizing: border-box;
+        #ads-container { width: 100%; max-width: 500px; margin: 0 auto; }
+        
+        .ad-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
         }
-        .reks-container { background: #f8f9fa; border: 1px dashed #0088cc; border-radius: 10px; padding: 15px; margin: 20px 0; }
-        .back-link { color: #0088cc; text-decoration: none; display: block; margin-bottom: 20px; font-weight: bold; }
+        
+        .ad-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .bank-badge { font-size: 0.75rem; color: #666; background: #eee; padding: 2px 8px; border-radius: 4px; }
+        .asset-name { font-weight: bold; color: #444; }
+        
+        .price { font-size: 1.4rem; font-weight: bold; color: #0088cc; margin-bottom: 4px; }
+        .limits { font-size: 0.85rem; color: #888; margin-bottom: 12px; }
+        
+        .buy-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #0088cc;
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .buy-btn:active { background: #0077b3; transform: scale(0.98); }
+
+        /* Страница сделки */
+        #deal-page {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            z-index: 2000;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .back-btn { color: #0088cc; text-decoration: none; font-weight: bold; display: block; margin-bottom: 20px; }
+        .reks-box {
+            background: #f8f9fa;
+            border: 2px dashed #0088cc;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .reks-box b { font-size: 1.2rem; letter-spacing: 1px; color: #222; }
+        .total-amount { font-size: 2rem; font-weight: bold; text-align: center; margin: 20px 0; color: #28a745; }
+        
+        #loader { text-align: center; margin-top: 50px; color: #999; }
     </style>
 </head>
 <body>
 
     <div id="main-page">
-        <h2 style="text-align:center;">P2P Маркет (RUB)</h2>
+        <h2>KVKZ P2P</h2>
+        <div id="loader">Загрузка объявлений...</div>
         <div id="ads-container"></div>
     </div>
 
     <div id="deal-page">
-        <a href="#" class="back-link" onclick="closeDeal()">← Назад к списку</a>
-        <h3>Оплата ордера RUB</h3>
-        <p>Переведите точную сумму через ваш банк на указанные реквизиты:</p>
+        <a href="#" class="back-btn" onclick="closeDeal()">← Назад</a>
+        <h3>Оплата заявки</h3>
+        <p style="font-size: 0.9rem; color: #666;">Переведите рубли по указанным реквизитам через ваш банк:</p>
         
-        <div class="reks-container">
+        <div class="reks-box">
             <small>Банк получателя:</small><br>
-            <b id="deal-bank">Т-Банк</b><br><br>
+            <span id="deal-bank" style="font-weight: bold; color: #0088cc;">—</span><br><br>
             <small>Номер карты / СБП:</small><br>
-            <b id="deal-card" style="font-size: 1.2rem;">0000 0000 0000 0000</b>
+            <b id="deal-card">0000 0000 0000 0000</b>
         </div>
 
-        <div style="margin-bottom: 30px;">
-            <small>К оплате:</small><br>
-            <span id="deal-price" style="font-size: 1.8rem; font-weight: bold;">0 RUB</span>
-        </div>
+        <div class="total-amount" id="deal-price">0 RUB</div>
 
-        <button class="buy-btn" style="background:#28a745;" onclick="confirmPay()">Я ОПЛАТИЛ</button>
-        <p style="font-size:0.75rem; color:#888; text-align:center; margin-top:15px;">
-            Система эскроу заморозила активы продавца до завершения сделки.
+        <button class="buy-btn" style="background: #28a745;" onclick="confirmPay()">Я ОПЛАТИЛ (RUB)</button>
+        
+        <p style="font-size: 0.7rem; color: #999; text-align: center; margin-top: 20px;">
+            После нажатия кнопки продавец получит уведомление. Активы будут зачислены после подтверждения продавцом.
         </p>
     </div>
 
@@ -54,34 +99,53 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; // ПРОВЕРЬ ССЫЛКУ!
+        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; 
+        let currentAdId = null;
 
         async function loadAds() {
-            const resp = await fetch(`${API_URL}/api/ads`, { headers: {'ngrok-skip-browser-warning': 'true'} });
-            const data = await resp.json();
             const container = document.getElementById('ads-container');
-            container.innerHTML = '';
+            const loader = document.getElementById('loader');
 
-            data.ads.forEach(ad => {
-                const card = document.createElement('div');
-                card.className = 'ad-card';
-                card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#666">
-                        <span><b>${ad.type.toUpperCase()}</b></span>
-                        <span>${ad.bank}</span>
-                    </div>
-                    <div class="price">${ad.price} RUB / ${ad.asset}</div>
-                    <div style="margin-bottom:10px; font-size:0.9rem">Лимит: ${ad.min_limit} - ${ad.max_limit}</div>
-                    <button class="buy-btn" onclick="openDeal('${ad.bank}', '${ad.card}', '${ad.price}', '${ad.asset}')">КУПИТЬ</button>
-                `;
-                container.appendChild(card);
-            });
+            try {
+                const response = await fetch(`${API_URL}/api/ads`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
+                const data = await response.json();
+
+                loader.style.display = 'none';
+                container.innerHTML = '';
+
+                if (data.status === 'ok' && data.ads.length > 0) {
+                    data.ads.forEach(ad => {
+                        const card = document.createElement('div');
+                        card.className = 'ad-card';
+                        card.innerHTML = `
+                            <div class="ad-header">
+                                <span class="asset-name">${ad.asset}</span>
+                                <span class="bank-badge">${ad.bank}</span>
+                            </div>
+                            <div class="price">${ad.price} RUB</div>
+                            <div class="limits">Лимит: ${ad.min_limit} - ${ad.max_limit} RUB</div>
+                            <button class="buy-btn" onclick="openDeal(${ad.id}, '${ad.bank}', '${ad.card}', '${ad.price}', '${ad.asset}')">
+                                Купить
+                            </button>
+                        `;
+                        container.appendChild(card);
+                    });
+                } else {
+                    loader.innerHTML = 'Активных объявлений нет 📭';
+                }
+            } catch (err) {
+                loader.innerHTML = '<span style="color:red;">Ошибка соединения с сервером</span>';
+            }
         }
 
-        function openDeal(bank, card, price, asset) {
+        function openDeal(id, bank, card, price, asset) {
+            currentAdId = id;
             document.getElementById('deal-bank').innerText = bank;
             document.getElementById('deal-card').innerText = card;
             document.getElementById('deal-price').innerText = `${price} RUB`;
+            
             document.getElementById('main-page').style.display = 'none';
             document.getElementById('deal-page').style.display = 'block';
         }
@@ -89,21 +153,44 @@
         function closeDeal() {
             document.getElementById('deal-page').style.display = 'none';
             document.getElementById('main-page').style.display = 'block';
+            currentAdId = null;
         }
 
-        function confirmPay() {
+        async function confirmPay() {
+            if (!currentAdId) return;
+
             tg.showPopup({
-                title: 'Подтверждение',
-                message: 'Вы точно отправили рубли? Ошибка может привести к блокировке.',
-                buttons: [{id: 'ok', type: 'default', text: 'Да, оплатил'}, {type: 'cancel'}]
-            }, (id) => {
-                if(id === 'ok') {
-                    tg.showAlert("Продавец уведомлен! Ожидайте подтверждения.");
-                    closeDeal();
+                title: 'Подтверждение оплаты',
+                message: 'Вы точно отправили рубли продавцу? Ложные подтверждения ведут к блокировке.',
+                buttons: [
+                    {id: 'yes', type: 'default', text: 'Да, оплатил'},
+                    {id: 'no', type: 'destructive', text: 'Отмена'}
+                ]
+            }, async (buttonId) => {
+                if (buttonId === 'yes') {
+                    try {
+                        const response = await fetch(`${API_URL}/api/confirm_payment`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ad_id: currentAdId })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.status === 'ok') {
+                            tg.showAlert("Уведомление отправлено продавцу. Ожидайте зачисления!");
+                            closeDeal();
+                        } else {
+                            tg.showAlert("Ошибка: " + result.message);
+                        }
+                    } catch (e) {
+                        tg.showAlert("Не удалось связаться с сервером.");
+                    }
                 }
             });
         }
 
+        // Запуск
         loadAds();
     </script>
 </body>
