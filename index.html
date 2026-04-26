@@ -3,115 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>KVKZ P2P Market</title>
+    <title>KVKZ P2P</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --bg: #f5f0eb; --brown: #5d4037; --text: #3e2723; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .ad-card { background: white; border-radius: 16px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .price { font-size: 1.5rem; font-weight: bold; color: var(--brown); margin: 5px 0; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; background: #795548; color: white; font-weight: bold; cursor: pointer; }
-        .btn:active { opacity: 0.8; }
+        :root { --main: #795548; --bg: #f5f0eb; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding-bottom: 70px; }
+        .tabs { display: flex; background: white; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 10; }
+        .tab { flex: 1; text-align: center; padding: 12px; font-weight: bold; color: #888; cursor: pointer; }
+        .tab.active { color: var(--main); border-bottom: 2px solid var(--main); }
+        
+        .content { padding: 15px; }
+        .ad-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .price { font-size: 1.3rem; font-weight: bold; color: #3e2723; }
+        
+        .input-group { margin: 10px 0; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--main); color: white; font-weight: bold; margin-top: 5px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h2 style="margin:0; color: var(--brown);">KVKZ MARKET</h2>
-        <div id="user-name" style="font-weight: 600;"></div>
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('market')">Маркет</div>
+        <div class="tab" onclick="showTab('create')">Создать</div>
+        <div class="tab" onclick="showTab('my')">Мои</div>
     </div>
 
-    <div id="loader" style="text-align:center; padding-top: 50px;">🔄 Подключение к маркету...</div>
-    <div id="ads-container"></div>
+    <div id="market" class="content">
+        <div id="loader">🔄 Загрузка объявлений...</div>
+        <div id="ads-container"></div>
+    </div>
+
+    <div id="create" class="content hidden">
+        <h3>Создать объявление</h3>
+        <div class="input-group">
+            <label>Актив (USDT, TON)</label>
+            <input type="text" id="new-asset" placeholder="USDT">
+        </div>
+        <div class="input-group">
+            <label>Цена (RUB)</label>
+            <input type="number" id="new-price" placeholder="95.5">
+        </div>
+        <div class="input-group">
+            <label>Банк</label>
+            <input type="text" id="new-bank" placeholder="Сбербанк">
+        </div>
+        <div class="input-group">
+            <label>Реквизиты</label>
+            <input type="text" id="new-card" placeholder="0000 0000 0000 0000">
+        </div>
+        <button class="btn" onclick="createNewAd()">Опубликовать</button>
+    </div>
+
+    <div id="my" class="content hidden">
+        <p>Ваши активные объявления появятся здесь.</p>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand();
-        
-        // ВАЖНО: Вставь сюда актуальную ссылку из терминала ngrok!
-        const API_URL = ' https://subsoil-life-iron.ngrok-free.dev'; 
-
+        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; // ЗАМЕНИ НА СВОЮ
         const user = tg.initDataUnsafe?.user;
-        if (user) document.getElementById('user-name').innerText = user.first_name;
 
-        async function loadData() {
+        function showTab(tabId) {
+            document.querySelectorAll('.content').forEach(c => c.classList.add('hidden'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.remove('hidden');
+            event.target.classList.add('active');
+            if (tabId === 'market') loadAds();
+        }
+
+        async function loadAds() {
             const container = document.getElementById('ads-container');
-            const loader = document.getElementById('loader');
-
             try {
-                // Заголовок для ngrok, чтобы он не блокировал запросы от скриптов
-                const headers = { 'ngrok-skip-browser-warning': 'true' };
-
-                // 1. Проверка активных сделок
-                const dealRes = await fetch(`${API_URL}/api/my_deals/${user?.id || 0}`, { headers });
-                const dealData = await dealRes.json();
-
-                if (dealData.status === 'deal_found') {
-                    loader.style.display = 'none';
-                    const d = dealData.deal;
-                    container.innerHTML = `
-                        <div class="ad-card" style="border: 2px solid #4caf50;">
-                            <b style="color:#4caf50">💰 Сделка #${d.id} активна</b>
-                            <div class="price">${d.price} RUB</div>
-                            <div style="font-size:0.8rem; margin-bottom:10px;">Реквизиты: <b>${d.card}</b></div>
-                            <button class="btn" style="background:#4caf50" onclick="confirmPayment(${d.id})">Я оплатил</button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // 2. Загрузка объявлений
-                const adsRes = await fetch(`${API_URL}/api/ads?t=${Date.now()}`, { headers });
-                const adsData = await adsRes.json();
+                const res = await fetch(`${API_URL}/api/ads`, { headers: {'ngrok-skip-browser-warning': 'true'} });
+                const data = await res.json();
+                document.getElementById('loader').style.display = 'none';
                 
-                loader.style.display = 'none';
-                if (!adsData.ads || adsData.ads.length === 0) {
-                    container.innerHTML = '<p style="text-align:center; color:#888;">Активных объявлений нет</p>';
-                    return;
-                }
-
-                container.innerHTML = adsData.ads.map(ad => `
+                container.innerHTML = data.ads.map(ad => `
                     <div class="ad-card">
-                        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#888;">
-                            <span>Мейкер ★ 5.0</span>
-                            <span style="background:#eee; padding:2px 6px; border-radius:5px;">${ad.bank}</span>
-                        </div>
+                        <div style="font-size: 0.8rem; color: #888;">Мейкер: ★ ${ad.rating} | ${ad.bank}</div>
                         <div class="price">${ad.price} RUB</div>
-                        <button class="btn" onclick="requestDeal(${ad.id})">
-                            ${ad.type === 'sell' ? 'Купить' : 'Продать'} ${ad.asset}
-                        </button>
+                        <div class="input-group">
+                            <input type="number" id="amt-${ad.id}" placeholder="Кол-во ${ad.asset}">
+                        </div>
+                        <button class="btn" onclick="buyAd(${ad.id})">Купить</button>
                     </div>
                 `).join('');
-
-            } catch (err) {
-                loader.innerHTML = `<b style="color:red;">❌ Ошибка соединения</b><br><small>Сервер недоступен или ссылка ngrok устарела.</small>`;
-            }
+            } catch (e) { container.innerText = "Ошибка загрузки"; }
         }
 
-        async function requestDeal(adId) {
-            try {
-                const res = await fetch(`${API_URL}/api/request_deal`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ ad_id: adId, buyer_id: user.id })
-                });
-                if (res.ok) { tg.showAlert("Запрос отправлен!"); loadData(); }
-            } catch (e) { tg.showAlert("Ошибка!"); }
+        async function createNewAd() {
+            const payload = {
+                user_id: user.id,
+                asset: document.getElementById('new-asset').value,
+                price: document.getElementById('new-price').value,
+                bank: document.getElementById('new-bank').value,
+                card: document.getElementById('new-card').value
+            };
+            const res = await fetch(`${API_URL}/api/create_ad`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) { tg.showAlert("Создано!"); showTab('market'); }
         }
 
-        async function confirmPayment(adId) {
-            try {
-                await fetch(`${API_URL}/api/confirm_payment`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ ad_id: adId })
-                });
-                tg.showAlert("Оплата подтверждена!"); loadData();
-            } catch (e) { tg.showAlert("Ошибка связи"); }
+        async function buyAd(adId) {
+            const amount = document.getElementById(`amt-${adId}`).value;
+            if (!amount) return tg.showAlert("Введите количество!");
+
+            const res = await fetch(`${API_URL}/api/request_deal`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ad_id: adId, buyer_id: user.id, amount: amount })
+            });
+            if (res.ok) tg.showAlert("Запрос отправлен продавцу!");
         }
 
-        loadData();
+        loadAds();
     </script>
 </body>
 </html>
