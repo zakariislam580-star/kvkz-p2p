@@ -3,125 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>KVKZ P2P</title>
+    <title>KVKZ P2P Market</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { --main: #795548; --bg: #f5f0eb; }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; padding-bottom: 70px; }
-        .tabs { display: flex; background: white; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 10; }
-        .tab { flex: 1; text-align: center; padding: 12px; font-weight: bold; color: #888; cursor: pointer; }
-        .tab.active { color: var(--main); border-bottom: 2px solid var(--main); }
+        :root { --tg-theme-button-color: #007aff; --bg: #f4f4f7; --text: #000; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; color: var(--text); padding-bottom: 80px; }
+        .header { background: #fff; padding: 15px; border-bottom: 1px solid #e5e5e5; display: flex; justify-content: space-between; align-items: center; }
+        .tabs { display: flex; background: #fff; padding: 5px; sticky; top: 0; z-index: 100; border-bottom: 1px solid #e5e5e5; }
+        .tab { flex: 1; text-align: center; padding: 10px; font-size: 14px; font-weight: 500; color: #8e8e93; cursor: pointer; }
+        .tab.active { color: var(--tg-theme-button-color); border-bottom: 2px solid var(--tg-theme-button-color); }
         
-        .content { padding: 15px; }
-        .ad-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .price { font-size: 1.3rem; font-weight: bold; color: #3e2723; }
+        .ad-card { background: #fff; margin: 10px; padding: 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .ad-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .price { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .bank-badge { background: #f0f0f2; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: #555; }
         
-        .input-group { margin: 10px 0; }
-        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin: 8px 0; box-sizing: border-box; outline: none; }
+        .btn { width: 100%; background: var(--tg-theme-button-color); color: #fff; border: none; padding: 14px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+        .fee-info { font-size: 12px; color: #8e8e93; margin-top: 4px; }
         
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--main); color: white; font-weight: bold; margin-top: 5px; }
+        #ton-connect { margin-bottom: 15px; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
+    <div class="header">
+        <div style="font-weight: bold;">KVKZ P2P</div>
+        <div id="ton-connect"></div>
+    </div>
 
     <div class="tabs">
-        <div class="tab active" onclick="showTab('market')">Маркет</div>
-        <div class="tab" onclick="showTab('create')">Создать</div>
-        <div class="tab" onclick="showTab('my')">Мои</div>
+        <div class="tab active" onclick="switchTab('buy')">Купить</div>
+        <div class="tab" onclick="switchTab('sell')">Продать</div>
+        <div class="tab" onclick="switchTab('create')">Создать</div>
     </div>
 
-    <div id="market" class="content">
-        <div id="loader">🔄 Загрузка объявлений...</div>
-        <div id="ads-container"></div>
+    <div id="buy-section" class="section">
+        <div id="ads-list"></div>
     </div>
 
-    <div id="create" class="content hidden">
+    <div id="create-section" class="section hidden" style="padding: 15px;">
         <h3>Создать объявление</h3>
-        <div class="input-group">
-            <label>Актив (USDT, TON)</label>
-            <input type="text" id="new-asset" placeholder="USDT">
-        </div>
-        <div class="input-group">
-            <label>Цена (RUB)</label>
-            <input type="number" id="new-price" placeholder="95.5">
-        </div>
-        <div class="input-group">
-            <label>Банк</label>
-            <input type="text" id="new-bank" placeholder="Сбербанк">
-        </div>
-        <div class="input-group">
-            <label>Реквизиты</label>
-            <input type="text" id="new-card" placeholder="0000 0000 0000 0000">
-        </div>
-        <button class="btn" onclick="createNewAd()">Опубликовать</button>
-    </div>
-
-    <div id="my" class="content hidden">
-        <p>Ваши активные объявления появятся здесь.</p>
+        <input type="text" id="asset" placeholder="Актив (USDT / TON)">
+        <input type="number" id="price" placeholder="Цена за 1 ед. (RUB)">
+        <input type="text" id="bank" placeholder="Банк (Сбербанк, Тинькофф...)">
+        <input type="text" id="details" placeholder="Реквизиты (номер карты)">
+        <div class="fee-info">Комиссия сервиса при сделке: 1%</div>
+        <button class="btn" onclick="publishAd()">Опубликовать</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        const API_URL = 'https://subsoil-life-iron.ngrok-free.dev'; // ЗАМЕНИ НА СВОЮ
+        const API_URL = "https://subsoil-life-iron.ngrok-free.dev";
         const user = tg.initDataUnsafe?.user;
 
-        function showTab(tabId) {
-            document.querySelectorAll('.content').forEach(c => c.classList.add('hidden'));
+        // Инициализация TonConnect для кошельков W5
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://zakariislam580-star.github.io/kvkz-p2p/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect'
+        });
+
+        function switchTab(type) {
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(tabId).classList.remove('hidden');
+            if (type === 'create') {
+                document.getElementById('create-section').classList.remove('hidden');
+            } else {
+                document.getElementById('buy-section').classList.remove('hidden');
+                loadAds(type);
+            }
             event.target.classList.add('active');
-            if (tabId === 'market') loadAds();
         }
 
-        async function loadAds() {
-            const container = document.getElementById('ads-container');
+        async function loadAds(type = 'sell') {
+            const container = document.getElementById('ads-list');
+            container.innerHTML = "<p style='text-align:center'>Загрузка...</p>";
             try {
-                const res = await fetch(`${API_URL}/api/ads`, { headers: {'ngrok-skip-browser-warning': 'true'} });
+                const res = await fetch(`${API_URL}/api/ads?type=${type}`, { headers: {'ngrok-skip-browser-warning': 'true'} });
                 const data = await res.json();
-                document.getElementById('loader').style.display = 'none';
-                
                 container.innerHTML = data.ads.map(ad => `
                     <div class="ad-card">
-                        <div style="font-size: 0.8rem; color: #888;">Мейкер: ★ ${ad.rating} | ${ad.bank}</div>
-                        <div class="price">${ad.price} RUB</div>
-                        <div class="input-group">
-                            <input type="number" id="amt-${ad.id}" placeholder="Кол-во ${ad.asset}">
+                        <div class="ad-header">
+                            <span class="bank-badge">${ad.bank}</span>
+                            <span style="color:#007aff">★ ${ad.rating}</span>
                         </div>
-                        <button class="btn" onclick="buyAd(${ad.id})">Купить</button>
+                        <div class="price">${ad.price} RUB</div>
+                        <div style="font-size:12px; color:#888">Доступно: ${ad.asset}</div>
+                        <input type="number" id="amt-${ad.id}" placeholder="Количество ${ad.asset}" oninput="calcTotal(${ad.id}, ${ad.price})">
+                        <div id="total-${ad.id}" class="fee-info"></div>
+                        <button class="btn" onclick="startDeal(${ad.id})">Купить</button>
                     </div>
                 `).join('');
-            } catch (e) { container.innerText = "Ошибка загрузки"; }
+            } catch (e) { container.innerHTML = "Ошибка подключения к API"; }
         }
 
-        async function createNewAd() {
+        function calcTotal(id, price) {
+            const amt = document.getElementById(`amt-${id}`).value;
+            if (amt) {
+                const total = amt * price;
+                const fee = total * 0.01; // Ваша структура комиссии 1%
+                document.getElementById(`total-${id}`).innerText = `Итого: ${total.toFixed(2)} RUB (вкл. комиссию ${fee.toFixed(2)})`;
+            }
+        }
+
+        async function publishAd() {
             const payload = {
                 user_id: user.id,
-                asset: document.getElementById('new-asset').value,
-                price: document.getElementById('new-price').value,
-                bank: document.getElementById('new-bank').value,
-                card: document.getElementById('new-card').value
+                asset: document.getElementById('asset').value,
+                price: document.getElementById('price').value,
+                bank: document.getElementById('bank').value,
+                card: document.getElementById('details').value
             };
             const res = await fetch(`${API_URL}/api/create_ad`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
-            if (res.ok) { tg.showAlert("Создано!"); showTab('market'); }
+            if (res.ok) { tg.showAlert("Объявление создано!"); switchTab('buy'); }
         }
 
-        async function buyAd(adId) {
+        async function startDeal(adId) {
             const amount = document.getElementById(`amt-${adId}`).value;
-            if (!amount) return tg.showAlert("Введите количество!");
-
+            if (!amount) return tg.showScanQrPopup("Введите количество");
+            
             const res = await fetch(`${API_URL}/api/request_deal`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ ad_id: adId, buyer_id: user.id, amount: amount })
             });
-            if (res.ok) tg.showAlert("Запрос отправлен продавцу!");
+            if (res.ok) tg.showAlert("Запрос отправлен! Ожидайте уведомления от бота.");
         }
 
+        tg.expand();
         loadAds();
     </script>
 </body>
