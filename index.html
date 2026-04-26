@@ -3,112 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>KVKZ Premium P2P</title>
+    <title>KVKZ Market</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { --accent: #8D6E63; --bg: #F5F5F0; --text: #3E2723; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 50px; }
-        .header { background: #fff; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E0E0D1; }
-        .tabs { display: flex; background: #fff; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #E0E0D1; }
-        .tab { flex: 1; text-align: center; padding: 15px; font-weight: 700; color: #A1887F; cursor: pointer; }
-        .tab.active { color: var(--accent); border-bottom: 3px solid var(--accent); }
-        .card { background: #fff; margin: 12px; padding: 20px; border-radius: 20px; border: 1px solid #E0E0D1; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .price { font-size: 24px; font-weight: 900; margin: 8px 0; }
-        .btn { width: 100%; background: var(--accent); color: #fff; border: none; padding: 15px; border-radius: 12px; font-weight: 700; cursor: pointer; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1.5px solid #D7CCC8; border-radius: 10px; box-sizing: border-box; outline: none; }
+        :root { --tg-hint: #8e8e93; --tg-link: #007aff; --bg: #f4f4f7; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding-bottom: 70px; color: #000; }
+        
+        /* Главное меню внизу (как в Wallet) */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; border-top: 1px solid #dcdce0; height: 60px; z-index: 100; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--tg-hint); cursor: pointer; }
+        .nav-item.active { color: var(--tg-link); }
+
+        .header { background: #fff; padding: 16px; font-weight: 700; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .tab-switcher { display: flex; background: #efeff4; border-radius: 8px; margin: 10px; padding: 2px; }
+        .ts-item { flex: 1; text-align: center; padding: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 6px; }
+        .ts-item.active { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        .card { background: #fff; margin: 10px; border-radius: 12px; padding: 16px; border: 0.5px solid #dcdce0; }
+        .price { font-size: 22px; font-weight: 800; }
+        .btn-main { background: var(--tg-link); color: #fff; border: none; width: 100%; padding: 12px; border-radius: 10px; font-weight: 600; margin-top: 10px; }
+        
+        .profile-header { text-align: center; padding: 20px; background: #fff; }
+        .profile-img { width: 60px; height: 60px; background: #007aff; border-radius: 50%; margin: 0 auto 10px; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        
         .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <b style="font-size: 18px;">KVKZ MARKET</b>
-        <div id="ton-connect"></div>
+
+    <div id="view-market" class="view">
+        <div class="header">P2P Маркет</div>
+        <div class="tab-switcher">
+            <div class="ts-item active" onclick="setSide('sell', this)">Купить</div>
+            <div class="ts-item" onclick="setSide('buy', this)">Продать</div>
+        </div>
+        <div id="market-list"></div>
     </div>
 
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('sell', this)">Купить</div>
-        <div class="tab" onclick="switchTab('buy', this)">Продать</div>
-        <div class="tab" onclick="switchTab('create', this)">Создать</div>
+    <div id="view-deals" class="view hidden">
+        <div class="header">Мои сделки</div>
+        <div class="tab-switcher" style="margin-bottom: 20px;">
+            <div class="ts-item active">Активные</div>
+            <div class="ts-item">Завершенные</div>
+        </div>
+        <center style="color: grey; margin-top: 50px;">У вас пока нет активных сделок</center>
     </div>
 
-    <div id="market-list"></div>
+    <div id="view-profile" class="view hidden">
+        <div class="profile-header">
+            <div class="profile-img" id="p-initial">U</div>
+            <div id="p-name" style="font-weight: 700;">Пользователь</div>
+            <div style="color: var(--tg-hint); font-size: 13px;">Рейтинг: <span id="p-rating">100</span>% (0 сделок)</div>
+        </div>
+        
+        <div class="card">
+            <div style="font-weight: 600; margin-bottom: 10px;">Способы оплаты</div>
+            <div id="p-cards" style="font-size: 14px; color: #555;">Карты не добавлены</div>
+            <button class="btn-main" style="background: none; color: var(--tg-link); padding: 0; margin-top: 15px; text-align: left;">+ Добавить карту</button>
+        </div>
 
-    <div id="create-form" class="hidden" style="padding: 20px;">
-        <h3>Новое объявление</h3>
-        <input type="text" id="asset" placeholder="USDT">
-        <input type="number" id="price" placeholder="Курс (RUB)">
-        <input type="text" id="bank" placeholder="Банк (Сбер)">
-        <input type="text" id="details" placeholder="Реквизиты">
-        <select id="type-select" style="width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid #D7CCC8;">
-            <option value="sell">Я продаю (в стакан КУПИТЬ)</option>
-            <option value="buy">Я покупаю (в стакан ПРОДАТЬ)</option>
-        </select>
-        <button class="btn" style="margin-top: 20px;" onclick="publish()">Опубликовать</button>
+        <div class="card" onclick="openCreateAd()">
+            <div style="font-weight: 600; color: var(--tg-link);">+ Создать объявление</div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="showView('market', this)"><span>🛒</span>Маркет</div>
+        <div class="nav-item" onclick="showView('deals', this)"><span>📄</span>Сделки</div>
+        <div class="nav-item" onclick="showView('profile', this)"><span>👤</span>Профиль</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        const API = "https://subsoil-life-iron.ngrok-free.dev"; // ТВОЙ NGROK
-        
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://zakariislam580-star.github.io/kvkz-p2p/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect'
-        });
+        const API = "https://subsoil-life-iron.ngrok-free.dev";
+        const user = tg.initDataUnsafe?.user || {id: 0, first_name: "Guest"};
 
-        async function switchTab(tab, el) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        function showView(view, el) {
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('view-' + view).classList.remove('hidden');
             el.classList.add('active');
-            if(tab === 'create') {
-                document.getElementById('market-list').classList.add('hidden');
-                document.getElementById('create-form').classList.remove('hidden');
-            } else {
-                document.getElementById('market-list').classList.remove('hidden');
-                document.getElementById('create-form').classList.add('hidden');
-                loadMarket(tab);
+            if(view === 'profile') loadProfile();
+        }
+
+        async function loadProfile() {
+            const res = await fetch(`${API}/api/profile/${user.id}`);
+            const data = await res.json();
+            document.getElementById('p-name').innerText = user.first_name;
+            document.getElementById('p-initial').innerText = user.first_name[0];
+            if(data.user) {
+                document.getElementById('p-rating').innerText = data.user[1];
             }
         }
 
-        async function loadMarket(type = 'sell') {
-            const res = await fetch(`${API}/api/market?type=${type}`);
+        async function loadMarket(side = 'sell') {
+            const res = await fetch(`${API}/api/market?type=${side}`);
             const data = await res.json();
             document.getElementById('market-list').innerHTML = data.ads.map(ad => `
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="background:#EFEBE9; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:bold; color:#8D6E63;">${ad.bank}</span>
-                        <span style="font-size:12px; color:#888;">★ ${ad.rating}%</span>
+                    <div style="display:flex; justify-content:space-between">
+                        <span style="font-size:12px; color:var(--tg-hint)">${ad.bank}</span>
+                        <span style="font-size:12px; font-weight:600">★ ${ad.rating}%</span>
                     </div>
                     <div class="price">${ad.price} RUB</div>
-                    <input type="number" id="amt-${ad.id}" placeholder="Количество ${ad.asset}">
-                    <button class="btn" onclick="deal(${ad.id}, ${ad.owner}, ${ad.price}, '${type}')">Взаимодействовать</button>
+                    <button class="btn-main" onclick="startDeal(${ad.id}, ${ad.owner}, ${ad.price}, '${side}')">
+                        ${side === 'sell' ? 'Купить' : 'Продать'}
+                    </button>
                 </div>
             `).join('');
         }
 
-        async function publish() {
-            const body = {
-                user_id: tg.initDataUnsafe.user.id,
-                username: tg.initDataUnsafe.user.username,
-                asset: document.getElementById('asset').value,
-                price: document.getElementById('price').value,
-                bank: document.getElementById('bank').value,
-                card: document.getElementById('details').value,
-                type: document.getElementById('type-select').value
-            };
-            await fetch(`${API}/api/create_ad`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-            tg.showAlert("Объявление создано!");
-            switchTab('sell', document.querySelector('.tab'));
-        }
-
-        async function deal(id, owner, price, type) {
-            const amount = document.getElementById(`amt-${id}`).value;
-            if(!amount) return tg.showAlert("Введите сумму!");
-            await fetch(`${API}/api/request_deal`, {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ owner_id: owner, amount, price, type })
-            });
-            tg.showAlert("Запрос отправлен!");
+        function setSide(side, el) {
+            document.querySelectorAll('.ts-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            loadMarket(side);
         }
 
         tg.expand();
