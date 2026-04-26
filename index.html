@@ -7,66 +7,38 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg: #f5f0eb;
-            --card: #ffffff;
-            --accent: #5d4037;
-            --text: #3e2723;
-            --secondary: #8d6e63;
-            --btn: #795548;
+            --primary-bg: #f5f0eb;
+            --card-bg: #ffffff;
+            --accent-brown: #5d4037;
+            --text-main: #3e2723;
+            --text-secondary: #8d6e63;
+            --btn-color: #795548;
+            --status-green: #4caf50;
         }
-
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background: var(--bg); 
-            color: var(--text);
-            margin: 0; padding: 15px; 
-        }
-
+        body { font-family: sans-serif; background: var(--primary-bg); color: var(--text-main); margin: 0; padding: 15px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .logo { color: var(--accent); font-weight: 800; font-size: 1.2rem; }
-
-        .ad-card { 
-            background: var(--card); 
-            border-radius: 16px; 
-            padding: 18px; 
-            margin-bottom: 12px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            border: 1px solid rgba(93,64,55,0.05);
-        }
-
-        .ad-top { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--secondary); }
-        .bank-label { background: rgba(121,85,72,0.1); padding: 4px 10px; border-radius: 20px; font-weight: 600; color: var(--btn); }
-
-        .price { font-size: 1.7rem; font-weight: 800; margin: 12px 0; color: var(--accent); }
-        
-        .buy-btn { 
-            width: 100%; padding: 14px; border: none; border-radius: 12px; 
-            background: var(--btn); color: white; font-weight: 700; font-size: 1rem;
-            box-shadow: 0 4px 8px rgba(121,85,72,0.2);
-        }
-
-        .status-box { 
-            background: #fff; border: 2px solid #5d4037; padding: 15px; border-radius: 16px; margin-bottom: 20px;
-        }
-
-        #loader { text-align: center; color: var(--secondary); margin-top: 50px; }
+        .ad-card { background: var(--card-bg); border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .price-text { font-size: 1.6rem; font-weight: bold; margin: 10px 0; color: var(--accent-brown); }
+        .bank-badge { background: #efebe9; color: var(--btn-color); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+        .buy-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--btn-color); color: white; font-weight: bold; cursor: pointer; }
+        .details-box { background: #fafafa; padding: 15px; border-radius: 12px; border: 1px dashed var(--btn-color); margin: 10px 0; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="logo">KVKZ P2P</div>
-        <div id="user-name" style="font-weight: 600; font-size: 0.9rem;"></div>
+        <h2 style="color: var(--accent-brown); margin: 0;">KVKZ P2P</h2>
+        <div id="user-name" style="font-weight: bold; color: var(--text-secondary);"></div>
     </div>
 
-    <div id="loader">Загрузка маркета...</div>
+    <div id="loader" style="text-align:center; padding: 20px;">Загрузка...</div>
     <div id="ads-container"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.headerColor = '#f5f0eb';
         
+        // ОБЯЗАТЕЛЬНО ОБНОВИ ЭТУ ССЫЛКУ ПОСЛЕ ЗАПУСКА NGROK
         const API_URL = ' https://subsoil-life-iron.ngrok-free.dev'; 
 
         const user = tg.initDataUnsafe?.user;
@@ -77,45 +49,51 @@
             const loader = document.getElementById('loader');
 
             try {
-                // 1. Проверка активных сделок
+                // 1. Проверяем наличие активных сделок
                 if (user) {
-                    const res = await fetch(`${API_URL}/api/my_deals/${user.id}`, {
+                    const checkDeal = await fetch(`${API_URL}/api/my_deals/${user.id}`, {
                         headers: { 'ngrok-skip-browser-warning': 'true' }
                     });
-                    const dealData = await res.json();
+                    const dealData = await checkDeal.json();
 
                     if (dealData.status === 'deal_found') {
                         loader.style.display = 'none';
                         const d = dealData.deal;
                         container.innerHTML = `
-                            <div class="status-box">
-                                <div style="color: var(--accent); font-weight: 800; margin-bottom: 10px;">🛡 Сделка в процессе</div>
-                                <div class="price">${d.price} RUB</div>
-                                <div style="margin-bottom: 10px;">Реквизиты для оплаты (${d.bank}):</div>
-                                <div style="background: #f5f0eb; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 1.1rem; letter-spacing: 1px;">
-                                    ${d.card}
+                            <div class="ad-card" style="border: 2px solid var(--status-green);">
+                                <div style="color: var(--status-green); font-weight: bold;">✅ Сделка подтверждена</div>
+                                <div class="price-text">${d.price} RUB</div>
+                                <div style="display:flex; justify-content:space-between;"><span>${d.asset}</span> <span class="bank-badge">${d.bank}</span></div>
+                                <div class="details-box">
+                                    <small>Реквизиты:</small><br>
+                                    <strong>${d.card}</strong>
                                 </div>
-                                <button class="buy-btn" style="margin-top: 15px; background: #4caf50;" onclick="confirmPayment(${d.id})">Я ОПЛАТИЛ</button>
+                                <button class="buy-btn" style="background: var(--status-green);" onclick="confirmPayment(${d.id})">Я оплатил</button>
                             </div>
                         `;
                         return;
                     }
                 }
 
-                // 2. Список объявлений
-                const response = await fetch(`${API_URL}/api/ads`, {
+                // 2. Загружаем маркет
+                const response = await fetch(`${API_URL}/api/ads?t=${Date.now()}`, {
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 });
                 const data = await response.json();
                 
                 loader.style.display = 'none';
+                if (data.ads.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">Объявлений пока нет</div>';
+                    return;
+                }
+
                 container.innerHTML = data.ads.map(ad => `
                     <div class="ad-card">
-                        <div class="ad-top">
-                            <span>👤 ${ad.user_name} • ${ad.stat}</span>
-                            <span class="bank-label">${ad.bank}</span>
+                        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#888;">
+                            <span>👤 Мейкер ★ ${ad.rating || '5.0'}</span>
+                            <span class="bank-badge">${ad.bank}</span>
                         </div>
-                        <div class="price">${ad.price} RUB</div>
+                        <div class="price-text">${ad.price} RUB</div>
                         <button class="buy-btn" onclick="requestDeal(${ad.id})">
                             ${ad.type === 'buy' ? 'Продать' : 'Купить'} ${ad.asset}
                         </button>
@@ -123,33 +101,35 @@
                 `).join('');
                 
             } catch (err) {
-                loader.innerText = 'Ошибка соединения';
+                loader.innerText = 'Ошибка соединения с сервером. Проверьте ngrok.';
+                console.error(err);
             }
         }
 
         async function requestDeal(adId) {
-            tg.showConfirm("Открыть сделку?", async (ok) => {
-                if (!ok) return;
-                const res = await fetch(`${API_URL}/api/request_deal`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ad_id: adId, buyer_id: user.id, buyer_name: user.first_name })
-                });
-                if ((await res.json()).status === 'ok') {
-                    tg.showAlert("Запрос отправлен! Ожидайте подтверждения продавца.");
-                    loadData();
-                }
+            if (!user) return tg.showAlert("Запустите приложение из бота!");
+            const res = await fetch(`${API_URL}/api/request_deal`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                body: JSON.stringify({ ad_id: adId, buyer_id: user.id })
             });
+            const result = await res.json();
+            if (result.status === 'ok') {
+                tg.showAlert("Запрос отправлен! Ждите принятия мейкером.");
+                loadData();
+            } else {
+                tg.showAlert("Ошибка: " + result.message);
+            }
         }
 
         async function confirmPayment(adId) {
             const res = await fetch(`${API_URL}/api/confirm_payment`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
                 body: JSON.stringify({ ad_id: adId })
             });
             if (res.ok) {
-                tg.showAlert("Продавец уведомлен об оплате!");
+                tg.showAlert("Уведомление об оплате отправлено!");
                 loadData();
             }
         }
