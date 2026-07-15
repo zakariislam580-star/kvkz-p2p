@@ -7,67 +7,280 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { --tg-hint: #8e8e93; --tg-link: #007aff; --bg: #f4f4f7; }
+        :root { 
+            --tg-hint: #8e8e93; 
+            --tg-link: #007aff; 
+            --bg: #f4f4f7; 
+            --active-green: #34c759;
+            --active-red: #ff3b30;
+        }
         
-        /* 💡 ЗАПРЕТ ВЫДЕЛЕНИЯ ТЕКСТА И КОНТЕКСТНЫХ МЕНЮ ДЛЯ MINI APP */
+        /* Запрет выделения текста для нативного ощущения App */
         * {
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
+            box-sizing: border-box;
         }
         
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding-bottom: 70px; color: #000; }
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; border-top: 1px solid #dcdce0; height: 60px; z-index: 100; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--tg-hint); cursor: pointer; }
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            padding-bottom: 80px; 
+            color: #000; 
+        }
+
+        /* Шапка Wallet Style */
+        .header { 
+            background: #fff; 
+            padding: 16px; 
+            font-weight: 700; 
+            font-size: 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid #e5e5ea;
+        }
+
+        /* Селекторы направления Bybit Style */
+        .trade-header {
+            background: #fff;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .selector-group {
+            display: flex;
+            gap: 10px;
+        }
+        .selector-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            background: #efeff4;
+            color: #000;
+            cursor: pointer;
+            border: none;
+        }
+        .selector-btn.active-buy {
+            background: var(--active-green);
+            color: #fff;
+        }
+        .selector-btn.active-sell {
+            background: var(--active-red);
+            color: #fff;
+        }
+
+        /* Список ордеров P2P */
+        .card { 
+            background: #fff; 
+            margin: 10px; 
+            border-radius: 12px; 
+            padding: 16px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #e5e5ea; 
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        .user-info {
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .stats-info {
+            color: var(--tg-hint);
+        }
+        .price-row {
+            margin: 8px 0;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+        }
+        .price { 
+            font-size: 24px; 
+            font-weight: 800; 
+            color: #000;
+        }
+        .limit-info {
+            font-size: 12px;
+            color: var(--tg-hint);
+            margin-bottom: 12px;
+        }
+
+        .btn-action { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 10px; 
+            font-weight: 700; 
+            font-size: 15px;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+        }
+        .btn-buy { background: var(--active-green); }
+        .btn-sell { background: var(--active-red); }
+
+        /* Вкладка Профиль (Wallet + Bybit Mix) */
+        .profile-container {
+            background: #fff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #e5e5ea;
+        }
+        .avatar {
+            width: 70px;
+            height: 70px;
+            background: var(--tg-link);
+            color: #fff;
+            border-radius: 50%;
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .user-rating-box {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .rating-badge {
+            background: #f4f4f7;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* Нижнее меню Wallet Style */
+        .bottom-nav { 
+            position: fixed; 
+            bottom: 0; 
+            width: 100%; 
+            background: #fff; 
+            display: flex; 
+            border-top: 1px solid #dcdce0; 
+            height: 65px; 
+            z-index: 100; 
+        }
+        .nav-item { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 11px; 
+            color: var(--tg-hint); 
+            cursor: pointer; 
+            gap: 4px;
+        }
         .nav-item.active { color: var(--tg-link); }
+        .nav-item span { font-size: 20px; }
 
-        .header { background: #fff; padding: 16px; font-weight: 700; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .tab-switcher { display: flex; background: #efeff4; border-radius: 8px; margin: 10px; padding: 2px; }
-        .ts-item { flex: 1; text-align: center; padding: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 6px; }
-        .ts-item.active { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        /* Категории сделок (Активные, Завершенные, Отмененные) */
+        .deals-tabs {
+            display: flex;
+            background: #efeff4;
+            border-radius: 8px;
+            margin: 10px;
+            padding: 2px;
+        }
+        .deal-tab {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        .deal-tab.active {
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
 
-        .card { background: #fff; margin: 10px; border-radius: 12px; padding: 16px; border: 0.5px solid #dcdce0; }
-        .price { font-size: 22px; font-weight: 800; }
-        .btn-main { background: var(--tg-link); color: #fff; border: none; width: 100%; padding: 12px; border-radius: 10px; font-weight: 600; margin-top: 10px; cursor: pointer; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 
+    <!-- Вкладка: МАРКЕТ -->
     <div id="view-market" class="view">
         <div class="header">
-            <span>P2P Маркет</span>
-            <div id="ton-connect-btn"></div> </div>
-        <div class="tab-switcher">
-            <div class="ts-item active" onclick="setSide('sell', this)">Купить</div>
-            <div class="ts-item" onclick="setSide('buy', this)">Продать</div>
-        </div>
-        <div id="market-list"></div>
-    </div>
-
-    <div id="view-deals" class="view hidden">
-        <div class="header">Мои сделки</div>
-        <div class="tab-switcher" style="margin-bottom: 20px;">
-            <div class="ts-item active" onclick="switchDeals('active')">Активные</div>
-            <div class="ts-item" onclick="switchDeals('history')">История</div>
-        </div>
-        <div id="deals-list" style="padding: 10px;"></div>
-    </div>
-
-    <div id="view-profile" class="view hidden">
-        <div class="profile-header" style="text-align: center; padding: 20px; background: #fff;">
-            <div id="p-name" style="font-weight: 700; font-size: 18px;">Пользователь</div>
-            <div style="color: var(--tg-hint); font-size: 13px;">Рейтинг: <span id="p-rating">100</span>%</div>
+            <span>KVKZ P2P</span>
+            <div id="ton-connect-btn"></div>
         </div>
         
-        <div class="card">
-            <div style="font-weight: 600; margin-bottom: 10px;">Способы оплаты</div>
-            <div id="p-cards" style="font-size: 14px; color: #555;">Загрузка...</div>
+        <div class="trade-header">
+            <div class="selector-group">
+                <button id="tab-buy" class="selector-btn active-buy" onclick="changeSide('sell')">Купить</button>
+                <button id="tab-sell" class="selector-btn" onclick="changeSide('buy')">Продать</button>
+            </div>
+            <div style="font-weight: 700; font-size: 14px; color: var(--tg-hint);">USDT / RUB</div>
+        </div>
+
+        <div id="market-list">
+            <!-- Сюда рендерятся ордера по модели Bybit -->
         </div>
     </div>
 
+    <!-- Вкладка: СДЕЛКИ (Wallet & Bybit) -->
+    <div id="view-deals" class="view hidden">
+        <div class="header">Мои сделки</div>
+        <div class="deals-tabs">
+            <div id="dt-active" class="deal-tab active" onclick="setDealsFilter('active')">Активные</div>
+            <div id="dt-completed" class="deal-tab" onclick="setDealsFilter('completed')">Завершенные</div>
+            <div id="dt-cancelled" class="deal-tab" onclick="setDealsFilter('cancelled')">Отмененные</div>
+        </div>
+        
+        <div id="deals-list" style="padding: 10px;">
+            <!-- Список сделок -->
+        </div>
+    </div>
+
+    <!-- Вкладка: ПРОФИЛЬ -->
+    <div id="view-profile" class="view hidden">
+        <div class="profile-container">
+            <div class="avatar" id="u-avatar">U</div>
+            <div id="u-name" style="font-weight: 800; font-size: 20px;">Загрузка...</div>
+            <div class="user-rating-box">
+                <div class="rating-badge">⭐ <span id="u-rating">100</span>%</div>
+                <div class="rating-badge">📦 Сделок: <span id="u-count">0</span></div>
+            </div>
+        </div>
+
+        <!-- Настройки оплаты (Реквизиты карт) -->
+        <div class="card">
+            <div style="font-weight: 700; font-size: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <span>💳 Способы оплаты</span>
+                <span style="color: var(--tg-link); font-size: 13px; cursor: pointer;" onclick="addPaymentMethod()">+ Добавить</span>
+            </div>
+            <div id="payment-methods-list" style="font-size: 14px; color: var(--tg-hint);">
+                Реквизиты отсутствуют. Добавьте карту для возможности создания объявлений.
+            </div>
+        </div>
+
+        <!-- Конструктор объявлений (Создать ордер) -->
+        <div class="card" style="cursor: pointer; border: 1.5px dashed var(--tg-link);" onclick="createAdModal()">
+            <div style="font-weight: 700; color: var(--tg-link); text-align: center; font-size: 15px;">
+                ➕ Создать объявление о покупке/продаже
+            </div>
+        </div>
+    </div>
+
+    <!-- Навигация Wallet Style -->
     <div class="bottom-nav">
         <div class="nav-item active" onclick="showView('market', this)"><span>🛒</span>Маркет</div>
         <div class="nav-item" onclick="showView('deals', this)"><span>📄</span>Сделки</div>
@@ -76,35 +289,101 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        const API = "https://many-dingos-hammer.loca.lt";
-        const user = tg.initDataUnsafe?.user || {id: 0, first_name: "Guest"};
+        const API = "https://subsoil-life-iron.ngrok-free.dev"; // Твой новый Pinggy/LocalTunnel URL сюда!
+        const user = tg.initDataUnsafe?.user || {id: 7032066503, first_name: "Developer"};
 
-        // Тонконнект
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://zakariislam580-star.github.io/kvkz-p2p/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
+
+        let currentSide = 'sell'; // По дефолту 'Купить' (Мейкеры продают)
 
         function showView(view, el) {
             document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('view-' + view).classList.remove('hidden');
             el.classList.add('active');
-            if(view === 'profile') loadProfile();
+            
+            if (view === 'profile') loadProfile();
+            if (view === 'deals') loadDeals();
+            if (view === 'market') loadMarket(currentSide);
+        }
+
+        function changeSide(side) {
+            currentSide = side;
+            document.getElementById('tab-buy').className = 'selector-btn';
+            document.getElementById('tab-sell').className = 'selector-btn';
+            
+            if (side === 'sell') {
+                document.getElementById('tab-buy').classList.add('active-buy');
+            } else {
+                document.getElementById('tab-sell').classList.add('active-sell');
+            }
+            loadMarket(side);
         }
 
         async function loadProfile() {
-            const res = await fetch(`${API}/api/profile/${user.id}`);
-            const data = await res.json();
-            document.getElementById('p-name').innerText = user.first_name;
-            if(data.user) {
-                document.getElementById('p-rating').innerText = data.user[1];
+            try {
+                const res = await fetch(`${API}/api/profile/${user.id}`);
+                const data = await res.json();
+                document.getElementById('u-name').innerText = user.first_name;
+                document.getElementById('u-avatar').innerText = user.first_name[0].toUpperCase();
+                
+                if (data.user) {
+                    document.getElementById('u-rating').innerText = data.user[1];
+                    document.getElementById('u-count').innerText = data.user[2];
+                }
+                
+                if (data.cards && data.cards.length > 0) {
+                    document.getElementById('payment-methods-list').innerHTML = data.cards.map(c => `
+                        <div style="padding: 10px 0; border-bottom: 0.5px solid #e5e5ea;">
+                            <span style="font-weight: 600;">🏦 ${c.bank}</span> — <span style="font-family: monospace;">${c.details}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error("Profile load failed", err);
             }
-            document.getElementById('p-cards').innerHTML = data.cards.length ? 
-                data.cards.map(c => `<div>🏦 ${c.bank}: ${c.details}</div>`).join('') : "Карты не добавлены";
+        }
+
+        async function loadMarket(side = 'sell') {
+            try {
+                const res = await fetch(`${API}/api/market?type=${side}`);
+                const data = await res.json();
+                const list = document.getElementById('market-list');
+                
+                if (!data.ads || data.ads.length === 0) {
+                    list.innerHTML = `<div style="text-align:center; color:gray; margin-top:50px;">Нет доступных объявлений</div>`;
+                    return;
+                }
+
+                list.innerHTML = data.ads.map(ad => `
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="user-info">👤 Maker_${ad.owner}</div>
+                            <div class="stats-info">★ ${ad.rating}% (${ad.deals_count} сделок)</div>
+                        </div>
+                        <div class="price-row">
+                            <span class="price">${ad.price} RUB</span>
+                            <span style="color: var(--tg-hint); font-size:13px;">Доступно: ${ad.amount} USDT</span>
+                        </div>
+                        <div class="limit-info">
+                            Банк: <b>${ad.bank}</b> <br/>
+                            Лимиты: 500 — ${ad.price * ad.amount} RUB
+                        </div>
+                        <button class="btn-action ${side === 'sell' ? 'btn-buy' : 'btn-sell'}" onclick="startDeal(${ad.id}, ${ad.owner}, ${ad.price}, '${side}')">
+                            ${side === 'sell' ? 'Купить USDT' : 'Продать USDT'}
+                        </button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error("Market load failed", err);
+            }
         }
 
         tg.expand();
+        loadMarket('sell');
     </script>
 </body>
 </html>
