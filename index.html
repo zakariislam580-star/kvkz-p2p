@@ -8,9 +8,17 @@
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
         :root { --tg-hint: #8e8e93; --tg-link: #007aff; --bg: #f4f4f7; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding-bottom: 70px; color: #000; }
         
-        /* Главное меню внизу (как в Wallet) */
+        /* 💡 ЗАПРЕТ ВЫДЕЛЕНИЯ ТЕКСТА И КОНТЕКСТНЫХ МЕНЮ ДЛЯ MINI APP */
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding-bottom: 70px; color: #000; }
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; border-top: 1px solid #dcdce0; height: 60px; z-index: 100; }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--tg-hint); cursor: pointer; }
         .nav-item.active { color: var(--tg-link); }
@@ -22,18 +30,16 @@
 
         .card { background: #fff; margin: 10px; border-radius: 12px; padding: 16px; border: 0.5px solid #dcdce0; }
         .price { font-size: 22px; font-weight: 800; }
-        .btn-main { background: var(--tg-link); color: #fff; border: none; width: 100%; padding: 12px; border-radius: 10px; font-weight: 600; margin-top: 10px; }
-        
-        .profile-header { text-align: center; padding: 20px; background: #fff; }
-        .profile-img { width: 60px; height: 60px; background: #007aff; border-radius: 50%; margin: 0 auto 10px; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        
+        .btn-main { background: var(--tg-link); color: #fff; border: none; width: 100%; padding: 12px; border-radius: 10px; font-weight: 600; margin-top: 10px; cursor: pointer; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
 
     <div id="view-market" class="view">
-        <div class="header">P2P Маркет</div>
+        <div class="header">
+            <span>P2P Маркет</span>
+            <div id="ton-connect-btn"></div> </div>
         <div class="tab-switcher">
             <div class="ts-item active" onclick="setSide('sell', this)">Купить</div>
             <div class="ts-item" onclick="setSide('buy', this)">Продать</div>
@@ -44,27 +50,21 @@
     <div id="view-deals" class="view hidden">
         <div class="header">Мои сделки</div>
         <div class="tab-switcher" style="margin-bottom: 20px;">
-            <div class="ts-item active">Активные</div>
-            <div class="ts-item">Завершенные</div>
+            <div class="ts-item active" onclick="switchDeals('active')">Активные</div>
+            <div class="ts-item" onclick="switchDeals('history')">История</div>
         </div>
-        <center style="color: grey; margin-top: 50px;">У вас пока нет активных сделок</center>
+        <div id="deals-list" style="padding: 10px;"></div>
     </div>
 
     <div id="view-profile" class="view hidden">
-        <div class="profile-header">
-            <div class="profile-img" id="p-initial">U</div>
-            <div id="p-name" style="font-weight: 700;">Пользователь</div>
-            <div style="color: var(--tg-hint); font-size: 13px;">Рейтинг: <span id="p-rating">100</span>% (0 сделок)</div>
+        <div class="profile-header" style="text-align: center; padding: 20px; background: #fff;">
+            <div id="p-name" style="font-weight: 700; font-size: 18px;">Пользователь</div>
+            <div style="color: var(--tg-hint); font-size: 13px;">Рейтинг: <span id="p-rating">100</span>%</div>
         </div>
         
         <div class="card">
             <div style="font-weight: 600; margin-bottom: 10px;">Способы оплаты</div>
-            <div id="p-cards" style="font-size: 14px; color: #555;">Карты не добавлены</div>
-            <button class="btn-main" style="background: none; color: var(--tg-link); padding: 0; margin-top: 15px; text-align: left;">+ Добавить карту</button>
-        </div>
-
-        <div class="card" onclick="openCreateAd()">
-            <div style="font-weight: 600; color: var(--tg-link);">+ Создать объявление</div>
+            <div id="p-cards" style="font-size: 14px; color: #555;">Загрузка...</div>
         </div>
     </div>
 
@@ -79,6 +79,12 @@
         const API = "https://subsoil-life-iron.ngrok-free.dev";
         const user = tg.initDataUnsafe?.user || {id: 0, first_name: "Guest"};
 
+        // Тонконнект
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://zakariislam580-star.github.io/kvkz-p2p/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-btn'
+        });
+
         function showView(view, el) {
             document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -91,37 +97,14 @@
             const res = await fetch(`${API}/api/profile/${user.id}`);
             const data = await res.json();
             document.getElementById('p-name').innerText = user.first_name;
-            document.getElementById('p-initial').innerText = user.first_name[0];
             if(data.user) {
                 document.getElementById('p-rating').innerText = data.user[1];
             }
-        }
-
-        async function loadMarket(side = 'sell') {
-            const res = await fetch(`${API}/api/market?type=${side}`);
-            const data = await res.json();
-            document.getElementById('market-list').innerHTML = data.ads.map(ad => `
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between">
-                        <span style="font-size:12px; color:var(--tg-hint)">${ad.bank}</span>
-                        <span style="font-size:12px; font-weight:600">★ ${ad.rating}%</span>
-                    </div>
-                    <div class="price">${ad.price} RUB</div>
-                    <button class="btn-main" onclick="startDeal(${ad.id}, ${ad.owner}, ${ad.price}, '${side}')">
-                        ${side === 'sell' ? 'Купить' : 'Продать'}
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        function setSide(side, el) {
-            document.querySelectorAll('.ts-item').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
-            loadMarket(side);
+            document.getElementById('p-cards').innerHTML = data.cards.length ? 
+                data.cards.map(c => `<div>🏦 ${c.bank}: ${c.details}</div>`).join('') : "Карты не добавлены";
         }
 
         tg.expand();
-        loadMarket();
     </script>
 </body>
 </html>
