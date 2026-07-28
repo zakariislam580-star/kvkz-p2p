@@ -112,8 +112,8 @@
     <script>
         const tg = window.Telegram.WebApp;
         
-        // ⚠️ ВАЖНО: Проверь, чтобы этот адрес был СВЕЖИМ и РАБОЧИМ
-        const API = "https://tame-bats-guess.loca.lt"; 
+        // Постоянная ссылка (фиксированный субдомен)
+        const API = "https://kvkz-p2p-dev.loca.lt"; 
         const user = tg.initDataUnsafe?.user || { id: 7032066503, first_name: "Developer" };
 
         let currentSide = 'sell';
@@ -121,16 +121,11 @@
 
         function log(msg) {
             const c = document.getElementById('debug-console');
-            c.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + c.innerHTML;
+            if (c) c.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + c.innerHTML;
         }
 
+        log(`API URL: ${API}`);
         log(`Юзер ID: ${user.id}`);
-
-        const headers = {
-            'Content-Type': 'application/json',
-            'Bypass-Tunnel-Remainder': 'true',
-            'ngrok-skip-browser-warning': 'true'
-        };
 
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://zakariislam580-star.github.io/kvkz-p2p/tonconnect-manifest.json',
@@ -146,7 +141,7 @@
                 try {
                     const response = await fetch(`${API}/api/user/connect-wallet`, {
                         method: 'POST',
-                        headers: headers,
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             user_id: String(user.id), 
                             ton_wallet: String(walletAddress) 
@@ -154,14 +149,14 @@
                     });
 
                     if (!response.ok) {
-                        log(`ОШИБКА HTTP ${response.status} при отправке wallet`);
+                        log(`Ошибка HTTP ${response.status} на /connect-wallet`);
                         return;
                     }
 
-                    log(`Кошелек успешно отправлен!`);
+                    log(`Кошелек сохранен в БД!`);
                     await checkUserStatus();
                 } catch (e) {
-                    log(`ОШИБКА сети (connect-wallet): ${e.message}`);
+                    log(`Ошибка сети (connect-wallet): ${e.message}`);
                 }
             }
         });
@@ -170,10 +165,10 @@
         async function checkUserStatus() {
             try {
                 log("Запрос статуса...");
-                const response = await fetch(`${API}/api/user/status/${user.id}`, { headers });
+                const response = await fetch(`${API}/api/user/status/${user.id}`);
                 
                 if (!response.ok) {
-                    log(`ОШИБКА HTTP ${response.status} на /status`);
+                    log(`Ошибка HTTP ${response.status} на /status`);
                     return userStatus;
                 }
 
@@ -183,7 +178,7 @@
                 updateModalView();
                 return userStatus;
             } catch (e) {
-                log(`ОШИБКА сети (/status): ${e.message}`);
+                log(`Ошибка сети (/status): ${e.message}`);
                 return userStatus;
             }
         }
@@ -237,9 +232,9 @@
 
         async function loadMarket(side = 'sell') {
             try {
-                const res = await fetch(`${API}/api/market?type=${side}`, { headers });
+                const res = await fetch(`${API}/api/market?type=${side}`);
                 if (!res.ok) {
-                    log(`ОШИБКА HTTP ${res.status} на /market`);
+                    log(`Ошибка HTTP ${res.status} на /market`);
                     return;
                 }
                 const data = await res.json();
@@ -267,7 +262,7 @@
                     </div>
                 `).join('');
             } catch (e) {
-                log(`ОШИБКА сети (/market): ${e.message}`);
+                log(`Ошибка сети (/market): ${e.message}`);
             }
         }
 
