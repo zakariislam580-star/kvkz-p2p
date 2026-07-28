@@ -246,7 +246,7 @@
         </div>
         
         <div id="deals-list" style="padding: 10px;">
-            <!-- Список сделок -->
+            <div style="text-align:center; color:gray; margin-top:30px; font-size:14px;">У вас пока нет активных сделок</div>
         </div>
     </div>
 
@@ -289,15 +289,33 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        const API = "https://many-dingos-hammer.loca.lt"; // Твой новый Pinggy/LocalTunnel URL сюда!
+        const API = "https://many-dingos-hammer.loca.lt"; // Можешь заменить при изменении домена
         const user = tg.initDataUnsafe?.user || {id: 7032066503, first_name: "Developer"};
 
+        // Инициализация TON Connect
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://zakariislam580-star.github.io/kvkz-p2p/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
-        let currentSide = 'sell'; // По дефолту 'Купить' (Мейкеры продают)
+        // Слушатель подключения кошелька для синхронизации с PostgreSQL
+        tonConnectUI.onStatusChange(async (wallet) => {
+            if (wallet) {
+                const address = wallet.account.address;
+                try {
+                    await fetch(`${API}/api/user/connect-wallet`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ user_id: user.id, ton_wallet: address })
+                    });
+                } catch (e) {
+                    console.error("Wallet sync error:", e);
+                }
+            }
+        });
+
+        let currentSide = 'sell';
+        let currentDealsFilter = 'active';
 
         function showView(view, el) {
             document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
@@ -323,6 +341,13 @@
             loadMarket(side);
         }
 
+        function setDealsFilter(filter) {
+            currentDealsFilter = filter;
+            document.querySelectorAll('.deal-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('dt-' + filter).classList.add('active');
+            loadDeals();
+        }
+
         async function loadProfile() {
             try {
                 const res = await fetch(`${API}/api/profile/${user.id}`);
@@ -331,16 +356,18 @@
                 document.getElementById('u-avatar').innerText = user.first_name[0].toUpperCase();
                 
                 if (data.user) {
-                    document.getElementById('u-rating').innerText = data.user[1];
-                    document.getElementById('u-count').innerText = data.user[2];
+                    document.getElementById('u-rating').innerText = data.user.rating || 100;
+                    document.getElementById('u-count').innerText = data.user.deals_total || 0;
                 }
                 
                 if (data.cards && data.cards.length > 0) {
                     document.getElementById('payment-methods-list').innerHTML = data.cards.map(c => `
-                        <div style="padding: 10px 0; border-bottom: 0.5px solid #e5e5ea;">
+                        <div style="padding: 10px 0; border-bottom: 0.5px solid #e5e5ea; color: #000;">
                             <span style="font-weight: 600;">🏦 ${c.bank}</span> — <span style="font-family: monospace;">${c.details}</span>
                         </div>
                     `).join('');
+                } else {
+                    document.getElementById('payment-methods-list').innerHTML = 'Реквизиты отсутствуют. Добавьте карту для возможности создания объявлений.';
                 }
             } catch (err) {
                 console.error("Profile load failed", err);
@@ -370,7 +397,7 @@
                         </div>
                         <div class="limit-info">
                             Банк: <b>${ad.bank}</b> <br/>
-                            Лимиты: 500 — ${ad.price * ad.amount} RUB
+                            Лимиты: 500 — ${(ad.price * ad.amount).toFixed(2)} RUB
                         </div>
                         <button class="btn-action ${side === 'sell' ? 'btn-buy' : 'btn-sell'}" onclick="startDeal(${ad.id}, ${ad.owner}, ${ad.price}, '${side}')">
                             ${side === 'sell' ? 'Купить USDT' : 'Продать USDT'}
@@ -380,6 +407,47 @@
             } catch (err) {
                 console.error("Market load failed", err);
             }
+        }
+
+        async function loadDeals() {
+            document.getElementById('deals-list').innerHTML = `
+                <div style="text-align:center; color:gray; margin-top:30px; font-size:14px;">
+                    У вас пока нет ${currentDealsFilter === 'active' ? 'активных' : currentDealsFilter === 'completed' ? 'завершенных' : 'отмененных'} сделок
+                </div>
+            `;
+        }
+
+        async function addPaymentMethod() {
+            const bank = prompt("Введите название банка (например: Сбербанк, Тинькофф):");
+            if (!bank) return;
+            const details = prompt("Введите номер карты или СБП:");
+            if (!details) return;
+
+            try {
+                const res = await fetch(`${API}/api/payment-methods`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: user.id,
+                        bank_name: bank,
+                        card_details: details
+                    })
+                });
+                if (res.ok) {
+                    alert("Способ оплаты сохранен!");
+                    loadProfile();
+                }
+            } catch (e) {
+                alert("Ошибка при сохранении карты");
+            }
+        }
+
+        function createAdModal() {
+            alert("Для создания объявлений отправьте команду /create в наш Telegram-бот");
+        }
+
+        function startDeal(adId, ownerId, price, side) {
+            alert(`Инициализация сделки по ордеру #${adId} (${price} RUB)`);
         }
 
         tg.expand();
