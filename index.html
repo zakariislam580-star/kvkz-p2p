@@ -43,7 +43,7 @@
             border-bottom: 0.5px solid #d1d1d6;
         }
 
-        /* Быстрые переключатели Bybit Style */
+        /* Переключатели */
         .trade-header {
             background: var(--card-bg);
             padding: 10px 16px;
@@ -78,7 +78,7 @@
             color: #fff;
         }
 
-        /* Карточка ордера в стакане */
+        /* Карточка ордера */
         .card { 
             background: var(--card-bg); 
             margin: 10px 12px; 
@@ -162,7 +162,7 @@
             font-weight: 600;
         }
 
-        /* --- НАСТОЯЩИЙ НАЛОЖЕННЫЙ БЛЮР (Blur Overlay) --- */
+        /* --- БЛЮР ОВЕРЛЕЙ --- */
         .blur-overlay {
             position: fixed;
             top: 0;
@@ -228,7 +228,7 @@
         .pill-ok { background: #e8f5e9; color: #2e7d32; }
         .pill-need { background: #ffebee; color: #c62828; }
 
-        /* Нижняя навигация */
+        /* Навигация */
         .bottom-nav { 
             position: fixed; 
             bottom: 0; 
@@ -295,7 +295,7 @@
             </div>
         </div>
 
-        <!-- Способы оплаты (Защищены верификацией) -->
+        <!-- Способы оплаты -->
         <div class="card">
             <div style="font-weight: 700; font-size: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                 <span>💳 Способы оплаты</span>
@@ -313,7 +313,7 @@
         </div>
     </div>
 
-    <!-- ОВЕРЛЕЙ АВТОРИЗАЦИИ С БЛЮРОМ -->
+    <!-- БЛЮР-МОДАЛКА ВЕРИФИКАЦИИ -->
     <div id="auth-blur-modal" class="blur-overlay hidden" onclick="onOuterModalClick(event)">
         <div class="modal-sheet">
             <div class="close-cross" onclick="closeAuthModal()">✕</div>
@@ -350,7 +350,7 @@
         </div>
     </div>
 
-    <!-- Навигация Wallet -->
+    <!-- Навигация -->
     <div class="bottom-nav">
         <div class="nav-item active" onclick="showView('market', this)"><span>🛒</span>Маркет</div>
         <div class="nav-item" onclick="showView('deals', this)"><span>📄</span>Сделки</div>
@@ -359,7 +359,7 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        const API = "https://six-ghosts-shop.loca.lt"; // Твой актуальный домен
+        const API = "https://six-ghosts-shop.loca.lt"; // Укажи свой актуальный домен
         const user = tg.initDataUnsafe?.user || {id: 7032066503, first_name: "Developer"};
 
         let currentSide = 'sell';
@@ -370,32 +370,47 @@
             buttonRootId: 'ton-connect-btn'
         });
 
-        // Синхронизация кошелька при подключении
+        // 1. Привязка кошелька с мгновенным перезапросом статуса
         tonConnectUI.onStatusChange(async (wallet) => {
             if (wallet) {
+                const walletAddress = wallet.account.address;
                 try {
                     await fetch(`${API}/api/user/connect-wallet`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ user_id: user.id, ton_wallet: wallet.account.address })
+                        body: JSON.stringify({ user_id: user.id, ton_wallet: walletAddress })
                     });
-                    checkUserStatus();
-                } catch (e) { console.error(e); }
+                    
+                    // Обновляем данные с сервера
+                    await checkUserStatus();
+
+                    // Если модалка открыта — перерисовываем её состояние
+                    if (!document.getElementById('auth-blur-modal').classList.contains('hidden')) {
+                        openAuthModal();
+                    }
+                } catch (e) {
+                    console.error("Wallet save error:", e);
+                }
             }
         });
 
+        // 2. Функция актуализации состояния из базы данных
         async function checkUserStatus() {
             try {
                 const res = await fetch(`${API}/api/user/status/${user.id}`);
                 userStatus = await res.json();
                 updateProfileCardsView();
-            } catch (e) { console.error("Status check failed", e); }
+                return userStatus;
+            } catch (e) {
+                console.error("Status check failed", e);
+                return userStatus;
+            }
         }
 
-        // Проверка прав перед чувствительными действиями
+        // 3. Защитный оберточный метод
         async function requireVerification(onSuccessAction) {
-            await checkUserStatus();
-            if (userStatus.is_verified) {
+            const current = await checkUserStatus();
+            if (current.is_verified) {
                 onSuccessAction();
             } else {
                 openAuthModal();
@@ -417,6 +432,8 @@
                 btn.innerText = "Подключить TON Кошелек";
             } else if (!userStatus.has_phone) {
                 btn.innerText = "Подтвердить телефон в боте";
+            } else {
+                closeAuthModal();
             }
 
             document.getElementById('auth-blur-modal').classList.remove('hidden');
@@ -432,7 +449,6 @@
 
         function runNextVerificationStep() {
             if (!userStatus.has_wallet) {
-                closeAuthModal();
                 tonConnectUI.openModal();
             } else if (!userStatus.has_phone) {
                 tg.sendData(JSON.stringify({ action: "request_phone" }));
@@ -534,11 +550,11 @@
         function updateProfileCardsView(cards = []) {
             const list = document.getElementById('payment-list');
             if (!userStatus.is_verified) {
-                list.innerHTML = `<span style="color:var(--active-red);">⚠️ Доступ заблокирован. Сначала подтвердите кошелек и телефон.</span>`;
+                list.innerHTML = `<span style="color:var(--active-red);">⚠️ Доступ заблокирован. Подтвердите кошелек и телефон.</span>`;
                 return;
             }
 
-            if (cards.length > 0) {
+            if (cards && cards.length > 0) {
                 list.innerHTML = cards.map(c => `
                     <div style="padding: 6px 0; border-bottom: 0.5px solid #e5e5ea; color: #000;">
                         <b>${c.bank}</b> — ${c.details}
