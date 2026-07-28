@@ -3,366 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>KVKZ Market</title>
+    <title>KVKZ Market Debug</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { 
-            --tg-hint: #8e8e93; 
-            --tg-link: #007aff; 
-            --bg: #f4f4f7; 
-            --active-green: #34c759;
-            --active-red: #ff3b30;
-            --card-bg: #ffffff;
-        }
+        :root { --tg-hint: #8e8e93; --tg-link: #007aff; --bg: #f4f4f7; --active-green: #34c759; --active-red: #ff3b30; }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; }
         
-        * {
-            -webkit-user-select: none;
-            user-select: none;
-            -webkit-touch-callout: none;
-            box-sizing: border-box;
+        /* Логгер ошибок на экран */
+        #debug-console {
+            background: #1c1c1e; color: #34c759; font-family: monospace; font-size: 11px;
+            padding: 8px; margin: 8px; border-radius: 8px; word-break: break-all; max-height: 100px; overflow-y: auto;
         }
+
+        .header { background: #fff; padding: 14px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #d1d1d6; }
+        .card { background: #fff; margin: 10px; border-radius: 12px; padding: 14px; border: 0.5px solid #e5e5ea; }
         
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background: var(--bg); 
-            margin: 0; 
-            padding-bottom: 80px; 
-            color: #000000; 
-        }
-
-        /* Шапка Wallet Style */
-        .header { 
-            background: var(--card-bg); 
-            padding: 14px 16px; 
-            font-weight: 700; 
-            font-size: 18px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-bottom: 0.5px solid #d1d1d6;
-        }
-
-        /* Переключатели */
-        .trade-header {
-            background: var(--card-bg);
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 0.5px solid #e5e5ea;
-        }
-        .selector-group {
-            display: flex;
-            background: #efeff4;
-            padding: 2px;
-            border-radius: 9px;
-        }
-        .selector-btn {
-            padding: 6px 16px;
-            border-radius: 7px;
-            font-size: 13px;
-            font-weight: 600;
-            background: transparent;
-            color: #000;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s ease;
-        }
-        .selector-btn.active-buy {
-            background: var(--active-green);
-            color: #fff;
-        }
-        .selector-btn.active-sell {
-            background: var(--active-red);
-            color: #fff;
-        }
-
-        /* Карточка ордера */
-        .card { 
-            background: var(--card-bg); 
-            margin: 10px 12px; 
-            border-radius: 14px; 
-            padding: 14px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            border: 0.5px solid #e5e5ea; 
-        }
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 12px;
-        }
-        .user-info {
-            font-weight: 700;
-            font-size: 14px;
-        }
-        .stats-info { color: var(--tg-hint); }
-        .price-row {
-            margin: 6px 0;
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-        }
-        .price { 
-            font-size: 22px; 
-            font-weight: 800; 
-        }
-        .limit-info {
-            font-size: 12px;
-            color: var(--tg-hint);
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-
-        .btn-action { 
-            width: 100%; 
-            padding: 12px; 
-            border-radius: 10px; 
-            font-weight: 700; 
-            font-size: 14px;
-            border: none;
-            color: #fff;
-            cursor: pointer;
-        }
-        .btn-buy { background: var(--active-green); }
-        .btn-sell { background: var(--active-red); }
-
-        /* Профиль */
-        .profile-container {
-            background: var(--card-bg);
-            padding: 20px;
-            text-align: center;
-            border-bottom: 0.5px solid #e5e5ea;
-        }
-        .avatar {
-            width: 64px;
-            height: 64px;
-            background: var(--tg-link);
-            color: #fff;
-            border-radius: 50%;
-            margin: 0 auto 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: 700;
-        }
-        .user-rating-box {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 8px;
-            font-size: 12px;
-        }
-        .rating-badge {
-            background: #f4f4f7;
-            padding: 4px 10px;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-
-        /* --- БЛЮР ОВЕРЛЕЙ --- */
         .blur-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.45);
-            -webkit-backdrop-filter: blur(12px);
-            backdrop-filter: blur(12px);
-            z-index: 999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            opacity: 1;
-            transition: opacity 0.2s ease;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.45); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            z-index: 999; display: flex; align-items: center; justify-content: center; padding: 16px;
         }
-
-        .modal-sheet {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 20px;
-            width: 100%;
-            max-width: 340px;
-            position: relative;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-
-        .close-cross {
-            position: absolute;
-            top: 14px;
-            right: 14px;
-            width: 28px;
-            height: 28px;
-            background: #f4f4f7;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-weight: bold;
-            color: var(--tg-hint);
-            font-size: 14px;
-        }
-
-        .step-card {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #f8f8fa;
-            border: 1px solid #e5e5ea;
-            padding: 12px;
-            border-radius: 12px;
-            margin-top: 10px;
-        }
-
-        .status-pill {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 4px 8px;
-            border-radius: 6px;
-        }
+        .modal-sheet { background: #fff; border-radius: 20px; padding: 20px; width: 100%; max-width: 340px; position: relative; }
+        .close-cross { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; background: #f4f4f7; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; }
+        .step-card { display: flex; align-items: center; justify-content: space-between; background: #f8f8fa; border: 1px solid #e5e5ea; padding: 12px; border-radius: 12px; margin-top: 10px; }
+        .status-pill { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
         .pill-ok { background: #e8f5e9; color: #2e7d32; }
         .pill-need { background: #ffebee; color: #c62828; }
-
-        /* Навигация */
-        .bottom-nav { 
-            position: fixed; 
-            bottom: 0; 
-            width: 100%; 
-            background: var(--card-bg); 
-            display: flex; 
-            border-top: 0.5px solid #d1d1d6; 
-            height: 60px; 
-            z-index: 100; 
-        }
-        .nav-item { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 10px; 
-            color: var(--tg-hint); 
-            cursor: pointer; 
-            gap: 2px;
-        }
-        .nav-item.active { color: var(--tg-link); }
-        .nav-item span { font-size: 18px; }
-
+        .btn-action { width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; border: none; color: #fff; background: var(--active-green); margin-top: 15px; cursor: pointer; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <!-- Вкладка МАРКЕТ -->
-    <div id="view-market" class="view">
-        <div class="header">
-            <span>KVKZ Market</span>
-            <div id="ton-connect-btn"></div>
-        </div>
-        
-        <div class="trade-header">
-            <div class="selector-group">
-                <button id="tab-buy" class="selector-btn active-buy" onclick="changeSide('sell')">Купить</button>
-                <button id="tab-sell" class="selector-btn" onclick="changeSide('buy')">Продать</button>
-            </div>
-            <div style="font-weight: 700; font-size: 13px; color: var(--tg-hint);">USDT / RUB</div>
-        </div>
+    <div id="debug-console">Логи приложения...</div>
 
-        <div id="market-list"></div>
+    <div class="header">
+        <span>KVKZ Market</span>
+        <div id="ton-connect-btn"></div>
     </div>
 
-    <!-- Вкладка СДЕЛКИ -->
-    <div id="view-deals" class="view hidden">
-        <div class="header">Мои сделки</div>
-        <div style="text-align:center; color:var(--tg-hint); margin-top:40px; font-size:14px;">
-            У вас нет активных сделок
-        </div>
-    </div>
-
-    <!-- Вкладка ПРОФИЛЬ -->
-    <div id="view-profile" class="view hidden">
-        <div class="profile-container">
-            <div class="avatar" id="u-avatar">U</div>
-            <div id="u-name" style="font-weight: 800; font-size: 18px;">Пользователь</div>
-            <div class="user-rating-box">
-                <div class="rating-badge">⭐ <span id="u-rating">100</span>%</div>
-                <div class="rating-badge">📦 Сделок: <span id="u-count">0</span></div>
-            </div>
-        </div>
-
-        <!-- Способы оплаты -->
+    <div id="market-list">
         <div class="card">
-            <div style="font-weight: 700; font-size: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                <span>💳 Способы оплаты</span>
-                <span style="color: var(--tg-link); font-size: 13px; cursor: pointer;" onclick="protectedAddPayment()">+ Добавить</span>
-            </div>
-            <div id="payment-list" style="font-size: 13px; color: var(--tg-hint);">
-                Привяжите кошелек и телефон, чтобы управлять реквизитами.
-            </div>
-        </div>
-
-        <div class="card" style="cursor: pointer; border: 1px dashed var(--tg-link);" onclick="protectedCreateAd()">
-            <div style="font-weight: 700; color: var(--tg-link); text-align: center; font-size: 14px;">
-                ➕ Создать объявление
-            </div>
+            <div><b>Тестовый ордер USDT</b></div>
+            <button class="btn-action" onclick="handleDealClick()">Купить USDT</button>
         </div>
     </div>
 
-    <!-- БЛЮР-МОДАЛКА ВЕРИФИКАЦИИ -->
-    <div id="auth-blur-modal" class="blur-overlay hidden" onclick="onOuterModalClick(event)">
+    <!-- Модалка с блюром -->
+    <div id="auth-blur-modal" class="blur-overlay hidden" onclick="if(event.target.id==='auth-blur-modal') closeAuthModal()">
         <div class="modal-sheet">
             <div class="close-cross" onclick="closeAuthModal()">✕</div>
-            
-            <div style="text-align: center; margin-bottom: 16px;">
-                <div style="font-size: 36px; margin-bottom: 6px;">🛡️</div>
-                <div style="font-weight: 800; font-size: 17px;">Требуется верификация</div>
-                <div style="font-size: 12px; color: var(--tg-hint); margin-top: 4px;">
-                    Для выполнения торговых операций необходимо подтвердить профиль
-                </div>
+            <div style="text-align: center; margin-bottom: 12px;">
+                <div style="font-size: 32px;">🛡️</div>
+                <div style="font-weight: 800;">Проверка доступа</div>
             </div>
-
-            <!-- Шаг 1 -->
             <div class="step-card">
-                <div>
-                    <div style="font-weight: 600; font-size: 13px;">1. Кошелек TON</div>
-                    <div style="font-size: 11px; color: var(--tg-hint);">Для смарт-контрактов</div>
-                </div>
+                <div><b>1. TON Кошелек</b></div>
                 <div id="st-wallet" class="status-pill pill-need">Не привязан</div>
             </div>
-
-            <!-- Шаг 2 -->
             <div class="step-card">
-                <div>
-                    <div style="font-weight: 600; font-size: 13px;">2. Номер телефона</div>
-                    <div style="font-size: 11px; color: var(--tg-hint);">Защита P2P-сделок</div>
-                </div>
+                <div><b>2. Телефон</b></div>
                 <div id="st-phone" class="status-pill pill-need">Не привязан</div>
             </div>
-
-            <button id="modal-primary-btn" class="btn-action btn-buy" style="margin-top: 16px;" onclick="runNextVerificationStep()">
-                Подключить кошелек
-            </button>
+            <button id="modal-btn" class="btn-action" onclick="runNextStep()">Действие</button>
         </div>
-    </div>
-
-    <!-- Навигация -->
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="showView('market', this)"><span>🛒</span>Маркет</div>
-        <div class="nav-item" onclick="showView('deals', this)"><span>📄</span>Сделки</div>
-        <div class="nav-item" onclick="showView('profile', this)"><span>👤</span>Профиль</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        const API = "https://six-ghosts-shop.loca.lt"; // Укажи свой актуальный домен
+        // ⚠️ ВАЖНО: Убедись, что этот адрес совпадает с твоим актуальным туннелем (localtunnel/ngrok)!
+        const API = "https://six-ghosts-shop.loca.lt"; 
         const user = tg.initDataUnsafe?.user || {id: 7032066503, first_name: "Developer"};
 
-        let currentSide = 'sell';
+        function log(msg) {
+            const c = document.getElementById('debug-console');
+            c.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + c.innerHTML;
+        }
+
+        log(`Юзер: ${user.id} (${user.first_name})`);
+
         let userStatus = { is_verified: false, has_wallet: false, has_phone: false };
 
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
@@ -370,57 +91,45 @@
             buttonRootId: 'ton-connect-btn'
         });
 
-        // 1. Привязка кошелька с мгновенным перезапросом статуса
+        // Отслеживание привязки кошелька
         tonConnectUI.onStatusChange(async (wallet) => {
             if (wallet) {
-                const walletAddress = wallet.account.address;
+                const addr = wallet.account.address;
+                log(`Кошелек в UI: ${addr.substring(0, 8)}...`);
+                
                 try {
-                    await fetch(`${API}/api/user/connect-wallet`, {
+                    const resp = await fetch(`${API}/api/user/connect-wallet`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ user_id: user.id, ton_wallet: walletAddress })
+                        body: JSON.stringify({ user_id: Number(user.id), ton_wallet: String(addr) })
                     });
-                    
-                    // Обновляем данные с сервера
+                    const resData = await resp.json();
+                    log(`Ответ сервера: ${JSON.stringify(resData)}`);
                     await checkUserStatus();
-
-                    // Если модалка открыта — перерисовываем её состояние
-                    if (!document.getElementById('auth-blur-modal').classList.contains('hidden')) {
-                        openAuthModal();
-                    }
-                } catch (e) {
-                    console.error("Wallet save error:", e);
+                } catch (err) {
+                    log(`ОШИБКА отправки кошелька: ${err.message}`);
                 }
             }
         });
 
-        // 2. Функция актуализации состояния из базы данных
         async function checkUserStatus() {
             try {
+                log("Запрос статуса с бэкенда...");
                 const res = await fetch(`${API}/api/user/status/${user.id}`);
                 userStatus = await res.json();
-                updateProfileCardsView();
+                log(`Статус из БД: W=${userStatus.has_wallet}, P=${userStatus.has_phone}`);
+                
+                updateModalUI();
                 return userStatus;
-            } catch (e) {
-                console.error("Status check failed", e);
-                return userStatus;
+            } catch (err) {
+                log(`ОШИБКА статуса: ${err.message}`);
             }
         }
 
-        // 3. Защитный оберточный метод
-        async function requireVerification(onSuccessAction) {
-            const current = await checkUserStatus();
-            if (current.is_verified) {
-                onSuccessAction();
-            } else {
-                openAuthModal();
-            }
-        }
-
-        function openAuthModal() {
+        function updateModalUI() {
             const wPill = document.getElementById('st-wallet');
             const pPill = document.getElementById('st-phone');
-            const btn = document.getElementById('modal-primary-btn');
+            const btn = document.getElementById('modal-btn');
 
             wPill.innerText = userStatus.has_wallet ? "Подключен" : "Не привязан";
             wPill.className = `status-pill ${userStatus.has_wallet ? 'pill-ok' : 'pill-need'}`;
@@ -433,9 +142,22 @@
             } else if (!userStatus.has_phone) {
                 btn.innerText = "Подтвердить телефон в боте";
             } else {
-                closeAuthModal();
+                btn.innerText = "Все привязано!";
             }
+        }
 
+        async function handleDealClick() {
+            log("Клик по ордеру...");
+            await checkUserStatus();
+            if (userStatus.is_verified) {
+                alert("Успех! Переходим к сделке.");
+            } else {
+                openAuthModal();
+            }
+        }
+
+        function openAuthModal() {
+            updateModalUI();
             document.getElementById('auth-blur-modal').classList.remove('hidden');
         }
 
@@ -443,11 +165,7 @@
             document.getElementById('auth-blur-modal').classList.add('hidden');
         }
 
-        function onOuterModalClick(e) {
-            if (e.target.id === 'auth-blur-modal') closeAuthModal();
-        }
-
-        function runNextVerificationStep() {
+        function runNextStep() {
             if (!userStatus.has_wallet) {
                 tonConnectUI.openModal();
             } else if (!userStatus.has_phone) {
@@ -456,118 +174,8 @@
             }
         }
 
-        function showView(view, el) {
-            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('view-' + view).classList.remove('hidden');
-            el.classList.add('active');
-            
-            if (view === 'profile') loadProfile();
-            if (view === 'market') loadMarket(currentSide);
-        }
-
-        function changeSide(side) {
-            currentSide = side;
-            document.getElementById('tab-buy').className = 'selector-btn';
-            document.getElementById('tab-sell').className = 'selector-btn';
-            if (side === 'sell') document.getElementById('tab-buy').classList.add('active-buy');
-            else document.getElementById('tab-sell').classList.add('active-sell');
-            loadMarket(side);
-        }
-
-        async function loadMarket(side = 'sell') {
-            try {
-                const res = await fetch(`${API}/api/market?type=${side}`);
-                const data = await res.json();
-                const list = document.getElementById('market-list');
-                
-                if (!data.ads || data.ads.length === 0) {
-                    list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Нет доступных ордеров</div>`;
-                    return;
-                }
-
-                list.innerHTML = data.ads.map(ad => `
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="user-info">👤 Maker_${ad.owner}</div>
-                            <div class="stats-info">★ ${ad.rating}% (${ad.deals_count})</div>
-                        </div>
-                        <div class="price-row">
-                            <span class="price">${ad.price} RUB</span>
-                            <span style="color: var(--tg-hint); font-size:12px;">Лимит: ${ad.amount} USDT</span>
-                        </div>
-                        <div class="limit-info">Банк: <b>${ad.bank}</b></div>
-                        <button class="btn-action ${side === 'sell' ? 'btn-buy' : 'btn-sell'}" onclick="handleDealClick(${ad.id})">
-                            ${side === 'sell' ? 'Купить USDT' : 'Продать USDT'}
-                        </button>
-                    </div>
-                `).join('');
-            } catch (e) { console.error(e); }
-        }
-
-        function handleDealClick(adId) {
-            requireVerification(() => {
-                alert(`Переход к оформлению сделки по ордеру #${adId}`);
-            });
-        }
-
-        function protectedAddPayment() {
-            requireVerification(() => {
-                const bank = prompt("Название банка:");
-                const details = prompt("Номер карты/СБП:");
-                if (bank && details) {
-                    fetch(`${API}/api/payment-methods`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ user_id: user.id, bank_name: bank, card_details: details })
-                    }).then(() => loadProfile());
-                }
-            });
-        }
-
-        function protectedCreateAd() {
-            requireVerification(() => {
-                alert("Отправьте команду /create в боте для размещения объявлений.");
-            });
-        }
-
-        async function loadProfile() {
-            document.getElementById('u-name').innerText = user.first_name;
-            document.getElementById('u-avatar').innerText = user.first_name[0].toUpperCase();
-            await checkUserStatus();
-            
-            try {
-                const res = await fetch(`${API}/api/profile/${user.id}`);
-                const data = await res.json();
-                if (data.user) {
-                    document.getElementById('u-rating').innerText = data.user.rating || 100;
-                    document.getElementById('u-count').innerText = data.user.deals_total || 0;
-                }
-                updateProfileCardsView(data.cards);
-            } catch (e) { console.error(e); }
-        }
-
-        function updateProfileCardsView(cards = []) {
-            const list = document.getElementById('payment-list');
-            if (!userStatus.is_verified) {
-                list.innerHTML = `<span style="color:var(--active-red);">⚠️ Доступ заблокирован. Подтвердите кошелек и телефон.</span>`;
-                return;
-            }
-
-            if (cards && cards.length > 0) {
-                list.innerHTML = cards.map(c => `
-                    <div style="padding: 6px 0; border-bottom: 0.5px solid #e5e5ea; color: #000;">
-                        <b>${c.bank}</b> — ${c.details}
-                    </div>
-                `).join('');
-            } else {
-                list.innerHTML = `Нажмите «+ Добавить», чтобы привязать реквизиты.`;
-            }
-        }
-
         tg.expand();
         checkUserStatus();
-        loadMarket('sell');
     </script>
 </body>
 </html>
