@@ -18,10 +18,9 @@
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; color: #000; }
 
-        /* Логгер ошибок (можно удалить перед продакшеном) */
         #debug-console {
             background: #1c1c1e; color: #34c759; font-family: monospace; font-size: 11px;
-            padding: 8px; margin: 8px; border-radius: 8px; word-break: break-all; max-height: 90px; overflow-y: auto;
+            padding: 8px; margin: 8px; border-radius: 8px; word-break: break-all; max-height: 110px; overflow-y: auto;
         }
 
         .header { background: var(--card-bg); padding: 14px 16px; font-weight: 700; font-size: 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #d1d1d6; }
@@ -43,7 +42,6 @@
         .btn-buy { background: var(--active-green); }
         .btn-sell { background: var(--active-red); }
 
-        /* Блюр-модалка */
         .blur-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.45); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 16px; }
         .modal-sheet { background: var(--card-bg); border-radius: 20px; padding: 20px; width: 100%; max-width: 340px; position: relative; }
         .close-cross { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; background: #f4f4f7; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; color: var(--tg-hint); }
@@ -52,10 +50,6 @@
         .pill-ok { background: #e8f5e9; color: #2e7d32; }
         .pill-need { background: #ffebee; color: #c62828; }
 
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: var(--card-bg); display: flex; border-top: 0.5px solid #d1d1d6; height: 60px; z-index: 100; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: var(--tg-hint); cursor: pointer; }
-        .nav-item.active { color: var(--tg-link); }
-        .nav-item span { font-size: 18px; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -118,7 +112,7 @@
     <script>
         const tg = window.Telegram.WebApp;
         
-        // ⚠️ ЗАМЕНИ НА СВОЙ АКТУАЛЬНЫЙ URL ТУННЕЛЯ (без / в конце)
+        // ⚠️ ВАЖНО: Проверь, чтобы этот адрес был СВЕЖИМ и РАБОЧИМ
         const API = "https://six-ghosts-shop.loca.lt"; 
         const user = tg.initDataUnsafe?.user || { id: 7032066503, first_name: "Developer" };
 
@@ -130,9 +124,8 @@
             c.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + c.innerHTML;
         }
 
-        log(`Инициализация юзера: ${user.id}`);
+        log(`Юзер ID: ${user.id}`);
 
-        // Общий заголовки для bypass туннеля и JSON
         const headers = {
             'Content-Type': 'application/json',
             'Bypass-Tunnel-Remainder': 'true',
@@ -144,11 +137,11 @@
             buttonRootId: 'ton-connect-btn'
         });
 
-        // 1. Отправка кошелька на бэкенд
+        // 1. Привязка кошелька
         tonConnectUI.onStatusChange(async (wallet) => {
             if (wallet) {
                 const walletAddress = wallet.account.address;
-                log(`TON Connect адрес: ${walletAddress.substring(0, 8)}...`);
+                log(`TON Connect: ${walletAddress.substring(0, 8)}...`);
 
                 try {
                     const response = await fetch(`${API}/api/user/connect-wallet`, {
@@ -160,42 +153,41 @@
                         })
                     });
 
-                    const text = await response.text();
-                    log(`Raw ответ отправки: ${text.substring(0, 40)}...`);
+                    if (!response.ok) {
+                        log(`ОШИБКА HTTP ${response.status} при отправке wallet`);
+                        return;
+                    }
 
+                    log(`Кошелек успешно отправлен!`);
                     await checkUserStatus();
                 } catch (e) {
-                    log(`Ошибка отправки кошелька: ${e.message}`);
+                    log(`ОШИБКА сети (connect-wallet): ${e.message}`);
                 }
             }
         });
 
-        // 2. Получение статуса с обработкой текста перед JSON
+        // 2. Запрос статуса
         async function checkUserStatus() {
             try {
-                log("Запрос /api/user/status...");
+                log("Запрос статуса...");
                 const response = await fetch(`${API}/api/user/status/${user.id}`, { headers });
                 
-                const rawText = await response.text();
-                
-                // Проверяем, отдается ли HTML заставка
-                if (rawText.trim().startsWith("<")) {
-                    log("ОШИБКА: Сервер отдал HTML вместо JSON (страница туннеля)");
+                if (!response.ok) {
+                    log(`ОШИБКА HTTP ${response.status} на /status`);
                     return userStatus;
                 }
 
-                userStatus = JSON.parse(rawText);
-                log(`Статус из БД: W=${userStatus.has_wallet}, P=${userStatus.has_phone}, V=${userStatus.is_verified}`);
+                userStatus = await response.json();
+                log(`БД: Wallet=${userStatus.has_wallet}, Phone=${userStatus.has_phone}`);
 
                 updateModalView();
                 return userStatus;
             } catch (e) {
-                log(`ОШИБКА статуса: ${e.message}`);
+                log(`ОШИБКА сети (/status): ${e.message}`);
                 return userStatus;
             }
         }
 
-        // 3. Обновление элементов модалки
         function updateModalView() {
             const wPill = document.getElementById('st-wallet');
             const pPill = document.getElementById('st-phone');
@@ -212,14 +204,14 @@
             } else if (!userStatus.has_phone) {
                 btn.innerText = "Подтвердить телефон в боте";
             } else {
-                btn.innerText = "Все данные подтверждены!";
+                btn.innerText = "Все подтверждено!";
             }
         }
 
         async function handleDealClick(adId) {
             await checkUserStatus();
             if (userStatus.is_verified) {
-                alert(`Переход к оформлению ордера #${adId}`);
+                alert(`Оформление сделки #${adId}`);
             } else {
                 openAuthModal();
             }
@@ -246,6 +238,10 @@
         async function loadMarket(side = 'sell') {
             try {
                 const res = await fetch(`${API}/api/market?type=${side}`, { headers });
+                if (!res.ok) {
+                    log(`ОШИБКА HTTP ${res.status} на /market`);
+                    return;
+                }
                 const data = await res.json();
                 const list = document.getElementById('market-list');
                 
@@ -271,7 +267,7 @@
                     </div>
                 `).join('');
             } catch (e) {
-                log(`Ошибка загрузки маркета: ${e.message}`);
+                log(`ОШИБКА сети (/market): ${e.message}`);
             }
         }
 
