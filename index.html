@@ -112,7 +112,7 @@
     <script>
         const tg = window.Telegram.WebApp;
         
-        // Постоянная ссылка (фиксированный субдомен)
+        // Постоянная ссылка туннеля
         const API = "https://kvkz-p2p-dev.loca.lt"; 
         const user = tg.initDataUnsafe?.user || { id: 7032066503, first_name: "Developer" };
 
@@ -225,6 +225,7 @@
             if (!userStatus.has_wallet) {
                 tonConnectUI.openModal();
             } else if (!userStatus.has_phone) {
+                // Передаем команду боту и закрываем приложение
                 tg.sendData(JSON.stringify({ action: "request_phone" }));
                 tg.close();
             }
