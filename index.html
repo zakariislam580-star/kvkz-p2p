@@ -207,10 +207,40 @@
             }
         }
 
+        async function executeBuy(adId) {
+            const cryptoAmount = prompt("Введите количество USDT:", "10");
+            if (!cryptoAmount || isNaN(cryptoAmount) || parseFloat(cryptoAmount) <= 0) return;
+
+            try {
+                log("Создание сделки...");
+                const response = await fetch(`${API}/api/deals/create`, {
+                    method: 'POST',
+                    headers: fetchHeaders,
+                    body: JSON.stringify({
+                        ad_id: adId,
+                        buyer_id: String(user.id),
+                        amount_crypto: parseFloat(cryptoAmount)
+                    })
+                });
+
+                if (response.ok) {
+                    const resData = await response.json();
+                    alert(`Сделка #${resData.deal_id} создана! Перейдите в чат с ботом для оплаты.`);
+                    tg.close();
+                } else {
+                    const errData = await response.json();
+                    alert(`Ошибка создания сделки: ${errData.detail || 'Неизвестная ошибка'}`);
+                }
+            } catch (e) {
+                log(`Ошибка сети (create deal): ${e.message}`);
+                alert(`Ошибка сети: ${e.message}`);
+            }
+        }
+
         async function handleDealClick(adId) {
             await checkUserStatus();
             if (userStatus.is_verified) {
-                alert(`Оформление сделки #${adId}`);
+                executeBuy(adId);
             } else {
                 openAuthModal();
             }
@@ -225,36 +255,36 @@
             document.getElementById('auth-blur-modal').classList.add('hidden');
         }
 
-       async function runNextVerificationStep() {
-    if (!userStatus.has_wallet) {
-        tonConnectUI.openModal();
-    } else if (!userStatus.has_phone) {
-        try {
-            log("Запрос кнопки телефона в бот...");
-            
-            const response = await fetch(`${API}/api/user/request-phone`, {
-                method: 'POST',
-                headers: fetchHeaders,
-                body: JSON.stringify({ user_id: String(user.id) })
-            });
+        async function runNextVerificationStep() {
+            if (!userStatus.has_wallet) {
+                tonConnectUI.openModal();
+            } else if (!userStatus.has_phone) {
+                try {
+                    log("Запрос кнопки телефона в бот...");
+                    
+                    const response = await fetch(`${API}/api/user/request-phone`, {
+                        method: 'POST',
+                        headers: fetchHeaders,
+                        body: JSON.stringify({ user_id: String(user.id) })
+                    });
 
-            if (response.ok) {
-                log("Сообщение отправлено в бот!");
-                // Небольшая задержка перед закрытием, чтобы запрос гарантированно завершился
-                setTimeout(() => {
-                    tg.close();
-                }, 300);
-            } else {
-                const errData = await response.json();
-                log(`Ошибка сервера: ${JSON.stringify(errData)}`);
-                alert("Не удалось отправить запрос в бот. Проверьте консоль.");
+                    if (response.ok) {
+                        log("Сообщение отправлено в бот!");
+                        setTimeout(() => {
+                            tg.close();
+                        }, 300);
+                    } else {
+                        const errData = await response.json();
+                        log(`Ошибка сервера: ${JSON.stringify(errData)}`);
+                        alert("Не удалось отправить запрос в бот. Проверьте консоль.");
+                    }
+                } catch (e) {
+                    log(`Ошибка сети при запросе телефона: ${e.message}`);
+                    alert(` Ошибка сети: ${e.message}`);
+                }
             }
-        } catch (e) {
-            log(`Ошибка сети при запросе телефона: ${e.message}`);
-            alert(` Ошибка сети: ${e.message}`);
         }
-    }
-}
+
         async function loadMarket(side = 'sell') {
             try {
                 const res = await fetch(`${API}/api/market?type=${side}`, {
