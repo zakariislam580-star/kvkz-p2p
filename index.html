@@ -21,7 +21,7 @@
 
         #debug-console {
             background: #1c1c1e; color: #34c759; font-family: monospace; font-size: 11px;
-            padding: 8px; margin: 8px; border-radius: 8px; word-break: break-all; max-height: 110px; overflow-y: auto;
+            padding: 8px; margin: 8px; border-radius: 8px; word-break: break-all; max-height: 90px; overflow-y: auto;
         }
 
         .header { background: var(--card-bg); padding: 14px 16px; font-weight: 700; font-size: 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid #d1d1d6; }
@@ -52,10 +52,10 @@
         .pill-ok { background: #e8f5e9; color: #2e7d32; }
         .pill-need { background: #ffebee; color: #c62828; }
 
-        /* Стиль экрана оплаты Wallet */
+        /* Wallet Style UI */
         .wallet-amount-box { text-align: center; margin: 20px 0; }
         .wallet-input-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .wallet-input { font-size: 38px; font-weight: 800; border: none; outline: none; width: 140px; text-align: right; background: transparent; }
+        .wallet-input { font-size: 38px; font-weight: 800; border: none; outline: none; width: 160px; text-align: right; background: transparent; }
         .wallet-currency { font-size: 28px; font-weight: 700; color: #8e8e93; }
         .wallet-subtext { font-size: 14px; color: var(--tg-hint); margin-top: 4px; font-weight: 500; }
         .btn-link { color: var(--accent-blue); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 6px; display: inline-block; }
@@ -67,6 +67,7 @@
         .wallet-detail-value { font-weight: 600; }
         
         .btn-wallet-submit { width: 100%; padding: 14px; border-radius: 12px; background: var(--accent-blue); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; }
+        .btn-wallet-cancel { width: 100%; padding: 12px; border-radius: 12px; background: transparent; color: var(--active-red); font-size: 14px; font-weight: 600; border: none; cursor: pointer; margin-top: 4px; }
 
         .hidden { display: none !important; }
     </style>
@@ -127,40 +128,71 @@
         </div>
     </div>
 
-    <!-- Экран сделки Wallet Style -->
-    <div id="deal-modal" class="blur-overlay hidden" onclick="if(event.target.id==='deal-modal') closeDealModal()">
+    <!-- Экран создания сделки (Wallet Style) -->
+    <div id="deal-modal" class="blur-overlay hidden">
         <div class="modal-sheet">
             <div class="close-cross" onclick="closeDealModal()">✕</div>
             
-            <div style="text-align: center; font-size: 13px; color: var(--tg-hint); font-weight: 600;">
-                Вы покупаете у <span id="deal-maker-name" style="color:#000;">Maker</span>
+            <!-- ШАГ 1: Ввод суммы -->
+            <div id="deal-step-input">
+                <div style="text-align: center; font-size: 13px; color: var(--tg-hint); font-weight: 600;">
+                    Вы покупаете у <span id="deal-maker-name" style="color:#000;">Maker</span>
+                </div>
+
+                <div class="wallet-amount-box">
+                    <div class="wallet-input-row">
+                        <input type="number" id="deal-fiat-input" class="wallet-input" value="500" oninput="calculateCrypto()">
+                        <span class="wallet-currency">RUB</span>
+                    </div>
+                    <div id="deal-crypto-subtext" class="wallet-subtext">0.00 USDT</div>
+                    <div class="btn-link" onclick="setBuyAll()">Купить все</div>
+                </div>
+
+                <div class="wallet-details-card">
+                    <div class="wallet-detail-item">
+                        <span class="wallet-detail-label">Метод оплаты</span>
+                        <span id="deal-bank-name" class="wallet-detail-value">Сбербанк</span>
+                    </div>
+                    <div class="wallet-detail-item">
+                        <span class="wallet-detail-label">Лимиты</span>
+                        <span id="deal-limits-text" class="wallet-detail-value">0 - 0 RUB</span>
+                    </div>
+                    <div class="wallet-detail-item">
+                        <span class="wallet-detail-label">Курс</span>
+                        <span id="deal-rate-text" class="wallet-detail-value">0.00 RUB</span>
+                    </div>
+                </div>
+
+                <button class="btn-wallet-submit" onclick="submitDeal()">КУПИТЬ</button>
             </div>
 
-            <div class="wallet-amount-box">
-                <div class="wallet-input-row">
-                    <input type="number" id="deal-fiat-input" class="wallet-input" value="500" oninput="calculateCrypto()">
-                    <span class="wallet-currency">RUB</span>
+            <!-- ШАГ 2: Экран активной сделки (как в Wallet) -->
+            <div id="deal-step-active" class="hidden">
+                <div style="text-align: center; margin-bottom: 12px;">
+                    <div style="font-size: 13px; color: var(--tg-hint); font-weight: 600;">Сделка <span id="active-deal-id">#0</span></div>
+                    <div style="font-size: 24px; font-weight: 800; color: #000; margin-top: 4px;" id="active-deal-timer">15:00</div>
+                    <div style="font-size: 12px; color: var(--tg-hint);">Оплатите ордер в течение отведенного времени</div>
                 </div>
-                <div id="deal-crypto-subtext" class="wallet-subtext">0.00 USDT</div>
-                <div class="btn-link" onclick="setBuyAll()">Купить все</div>
+
+                <div class="wallet-details-card">
+                    <div class="wallet-detail-item">
+                        <span class="wallet-detail-label">Сумма к оплате</span>
+                        <span id="active-deal-fiat" class="wallet-detail-value" style="color: var(--active-green); font-size: 16px;">0 RUB</span>
+                    </div>
+                    <div class="wallet-detail-item">
+                        <span class="wallet-detail-label">Вы получаете</span>
+                        <span id="active-deal-crypto" class="wallet-detail-value">0 USDT</span>
+                    </div>
+                    <div class="wallet-detail-item">
+                        <span class="wallet-detail-label">Банк</span>
+                        <span id="active-deal-bank" class="wallet-detail-value">Сбербанк</span>
+                    </div>
+                </div>
+
+                <button class="btn-wallet-submit" style="background: var(--active-green);" onclick="markAsPaid()">Я ОПЛАТИЛ</button>
+                <button class="btn-wallet-cancel" onclick="cancelDeal()">Отменить сделку</button>
             </div>
 
-            <div class="wallet-details-card">
-                <div class="wallet-detail-item">
-                    <span class="wallet-detail-label">Метод оплаты</span>
-                    <span id="deal-bank-name" class="wallet-detail-value">Сбербанк</span>
-                </div>
-                <div class="wallet-detail-item">
-                    <span class="wallet-detail-label">Лимиты</span>
-                    <span id="deal-limits-text" class="wallet-detail-value">0 - 0 RUB</span>
-                </div>
-                <div class="wallet-detail-item">
-                    <span class="wallet-detail-label">Курс</span>
-                    <span id="deal-rate-text" class="wallet-detail-value">0.00 RUB</span>
-                </div>
-            </div>
-
-            <button class="btn-wallet-submit" onclick="submitDeal()">КУПИТЬ</button>
         </div>
     </div>
 
@@ -172,8 +204,8 @@
 
         let currentSide = 'sell';
         let userStatus = { is_verified: false, has_wallet: false, has_phone: false };
-        
         let activeAd = null;
+        let activeDealId = null;
 
         const fetchHeaders = {
             'Content-Type': 'application/json',
@@ -185,9 +217,6 @@
             if (c) c.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + c.innerHTML;
         }
 
-        log(`API URL: ${API}`);
-        log(`Юзер ID: ${user.id}`);
-
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://zakariislam580-star.github.io/kvkz-p2p/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
@@ -196,24 +225,12 @@
         tonConnectUI.onStatusChange(async (wallet) => {
             if (wallet) {
                 const walletAddress = wallet.account.address;
-                log(`TON Connect: ${walletAddress.substring(0, 8)}...`);
-
                 try {
-                    const response = await fetch(`${API}/api/user/connect-wallet`, {
+                    await fetch(`${API}/api/user/connect-wallet`, {
                         method: 'POST',
                         headers: fetchHeaders,
-                        body: JSON.stringify({ 
-                            user_id: String(user.id), 
-                            ton_wallet: String(walletAddress) 
-                        })
+                        body: JSON.stringify({ user_id: String(user.id), ton_wallet: String(walletAddress) })
                     });
-
-                    if (!response.ok) {
-                        log(`Ошибка HTTP ${response.status} на /connect-wallet`);
-                        return;
-                    }
-
-                    log(`Кошелек сохранен в БД!`);
                     await checkUserStatus();
                 } catch (e) {
                     log(`Ошибка сети (connect-wallet): ${e.message}`);
@@ -223,23 +240,12 @@
 
         async function checkUserStatus() {
             try {
-                log("Запрос статуса...");
-                const response = await fetch(`${API}/api/user/status/${user.id}`, {
-                    headers: { 'ngrok-skip-browser-warning': 'true' }
-                });
-                
-                if (!response.ok) {
-                    log(`Ошибка HTTP ${response.status} на /status`);
-                    return userStatus;
-                }
-
+                const response = await fetch(`${API}/api/user/status/${user.id}`, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+                if (!response.ok) return userStatus;
                 userStatus = await response.json();
-                log(`БД: Wallet=${userStatus.has_wallet}, Phone=${userStatus.has_phone}`);
-
                 updateModalView();
                 return userStatus;
             } catch (e) {
-                log(`Ошибка сети (/status): ${e.message}`);
                 return userStatus;
             }
         }
@@ -255,18 +261,16 @@
             pPill.innerText = userStatus.has_phone ? "Подтвержден" : "Не привязан";
             pPill.className = `status-pill ${userStatus.has_phone ? 'pill-ok' : 'pill-need'}`;
 
-            if (!userStatus.has_wallet) {
-                btn.innerText = "Подключить TON Кошелек";
-            } else if (!userStatus.has_phone) {
-                btn.innerText = "Подтвердить телефон в боте";
-            } else {
-                btn.innerText = "Все подтверждено!";
-            }
+            if (!userStatus.has_wallet) btn.innerText = "Подключить TON Кошелек";
+            else if (!userStatus.has_phone) btn.innerText = "Подтвердить телефон в боте";
+            else btn.innerText = "Все подтверждено!";
         }
 
-        /* Логика расчета и работы окна сделки */
         function openDealModal(ad) {
             activeAd = ad;
+            document.getElementById('deal-step-input').classList.remove('hidden');
+            document.getElementById('deal-step-active').classList.add('hidden');
+
             document.getElementById('deal-maker-name').innerText = `Maker_${ad.owner}`;
             document.getElementById('deal-bank-name').innerText = ad.bank;
             
@@ -298,6 +302,7 @@
             calculateCrypto();
         }
 
+        /* Создание сделки без закрытия Mini App */
         async function submitDeal() {
             if (!activeAd) return;
             const fiatVal = parseFloat(document.getElementById('deal-fiat-input').value);
@@ -309,7 +314,6 @@
             }
 
             try {
-                log("Отправка запроса на создание сделки...");
                 const response = await fetch(`${API}/api/deals/create`, {
                     method: 'POST',
                     headers: fetchHeaders,
@@ -322,16 +326,33 @@
 
                 if (response.ok) {
                     const resData = await response.json();
-                    alert(`Сделка #${resData.deal_id} успешно создана! Чат откроется в боте.`);
-                    tg.close();
+                    activeDealId = resData.deal_id;
+
+                    // Переключаем экран на статус активной сделки
+                    document.getElementById('deal-step-input').classList.add('hidden');
+                    document.getElementById('deal-step-active').classList.remove('hidden');
+                    
+                    document.getElementById('active-deal-id').innerText = `#${activeDealId}`;
+                    document.getElementById('active-deal-fiat').innerText = `${fiatVal.toFixed(2)} RUB`;
+                    document.getElementById('active-deal-crypto').innerText = `${cryptoVal.toFixed(4)} USDT`;
+                    document.getElementById('active-deal-bank').innerText = activeAd.bank;
                 } else {
                     const errData = await response.json();
                     alert(`Ошибка: ${errData.detail || 'Ошибка базы данных'}`);
                 }
             } catch (e) {
-                log(`Ошибка сети (create deal): ${e.message}`);
                 alert(`Ошибка сети: ${e.message}`);
             }
+        }
+
+        function markAsPaid() {
+            alert("Статус отправлен продавцу! Вы можете отслеживать сделку прямо в чате бота.");
+            closeDealModal();
+        }
+
+        function cancelDeal() {
+            alert("Сделка отменена.");
+            closeDealModal();
         }
 
         async function handleDealClick(ad) {
@@ -357,40 +378,24 @@
                 tonConnectUI.openModal();
             } else if (!userStatus.has_phone) {
                 try {
-                    log("Запрос кнопки телефона в бот...");
-                    
                     const response = await fetch(`${API}/api/user/request-phone`, {
                         method: 'POST',
                         headers: fetchHeaders,
                         body: JSON.stringify({ user_id: String(user.id) })
                     });
-
                     if (response.ok) {
-                        log("Сообщение отправлено в бот!");
-                        setTimeout(() => {
-                            tg.close();
-                        }, 300);
-                    } else {
-                        const errData = await response.json();
-                        log(`Ошибка сервера: ${JSON.stringify(errData)}`);
-                        alert("Не удалось отправить запрос в бот. Проверьте консоль.");
+                        setTimeout(() => tg.close(), 300);
                     }
                 } catch (e) {
-                    log(`Ошибка сети при запросе телефона: ${e.message}`);
-                    alert(` Ошибка сети: ${e.message}`);
+                    alert(`Ошибка сети: ${e.message}`);
                 }
             }
         }
 
         async function loadMarket(side = 'sell') {
             try {
-                const res = await fetch(`${API}/api/market?type=${side}`, {
-                    headers: { 'ngrok-skip-browser-warning': 'true' }
-                });
-                if (!res.ok) {
-                    log(`Ошибка HTTP ${res.status} на /market`);
-                    return;
-                }
+                const res = await fetch(`${API}/api/market?type=${side}`, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+                if (!res.ok) return;
                 const data = await res.json();
                 const list = document.getElementById('market-list');
                 
