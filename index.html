@@ -112,13 +112,17 @@
     <script>
         const tg = window.Telegram.WebApp;
         
-        // Постоянная ссылка туннеля
-        // ✅ НОВАЯ СТРОКА:
         const API = "https://subsoil-life-iron.ngrok-free.dev"; 
         const user = tg.initDataUnsafe?.user || { id: 7032066503, first_name: "Developer" };
 
         let currentSide = 'sell';
         let userStatus = { is_verified: false, has_wallet: false, has_phone: false };
+
+        // Заголовки для обхода защиты ngrok
+        const fetchHeaders = {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
+        };
 
         function log(msg) {
             const c = document.getElementById('debug-console');
@@ -142,7 +146,7 @@
                 try {
                     const response = await fetch(`${API}/api/user/connect-wallet`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: fetchHeaders,
                         body: JSON.stringify({ 
                             user_id: String(user.id), 
                             ton_wallet: String(walletAddress) 
@@ -166,7 +170,9 @@
         async function checkUserStatus() {
             try {
                 log("Запрос статуса...");
-                const response = await fetch(`${API}/api/user/status/${user.id}`);
+                const response = await fetch(`${API}/api/user/status/${user.id}`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
                 
                 if (!response.ok) {
                     log(`Ошибка HTTP ${response.status} на /status`);
@@ -226,7 +232,6 @@
             if (!userStatus.has_wallet) {
                 tonConnectUI.openModal();
             } else if (!userStatus.has_phone) {
-                // Передаем команду боту и закрываем приложение
                 tg.sendData(JSON.stringify({ action: "request_phone" }));
                 tg.close();
             }
@@ -234,7 +239,9 @@
 
         async function loadMarket(side = 'sell') {
             try {
-                const res = await fetch(`${API}/api/market?type=${side}`);
+                const res = await fetch(`${API}/api/market?type=${side}`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
                 if (!res.ok) {
                     log(`Ошибка HTTP ${res.status} на /market`);
                     return;
