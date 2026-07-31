@@ -118,7 +118,6 @@
         let currentSide = 'sell';
         let userStatus = { is_verified: false, has_wallet: false, has_phone: false };
 
-        // Заголовки для обхода защиты ngrok
         const fetchHeaders = {
             'Content-Type': 'application/json',
             'ngrok-skip-browser-warning': 'true'
@@ -137,7 +136,6 @@
             buttonRootId: 'ton-connect-btn'
         });
 
-        // 1. Привязка кошелька
         tonConnectUI.onStatusChange(async (wallet) => {
             if (wallet) {
                 const walletAddress = wallet.account.address;
@@ -166,7 +164,6 @@
             }
         });
 
-        // 2. Запрос статуса
         async function checkUserStatus() {
             try {
                 log("Запрос статуса...");
@@ -228,12 +225,22 @@
             document.getElementById('auth-blur-modal').classList.add('hidden');
         }
 
-        function runNextVerificationStep() {
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ ЗАПРОСА ТЕЛЕФОНА
+        async function runNextVerificationStep() {
             if (!userStatus.has_wallet) {
                 tonConnectUI.openModal();
             } else if (!userStatus.has_phone) {
-                tg.sendData(JSON.stringify({ action: "request_phone" }));
-                tg.close();
+                try {
+                    log("Запрос кнопки телефона в бот...");
+                    await fetch(`${API}/api/user/request-phone`, {
+                        method: 'POST',
+                        headers: fetchHeaders,
+                        body: JSON.stringify({ user_id: String(user.id) })
+                    });
+                    tg.close();
+                } catch (e) {
+                    log(`Ошибка отправки запроса: ${e.message}`);
+                }
             }
         }
 
