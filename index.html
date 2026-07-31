@@ -14,6 +14,7 @@
             --active-green: #34c759; 
             --active-red: #ff3b30; 
             --card-bg: #ffffff;
+            --accent-blue: #007aff;
         }
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; color: #000; }
@@ -42,13 +43,30 @@
         .btn-buy { background: var(--active-green); }
         .btn-sell { background: var(--active-red); }
 
-        .blur-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.45); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 16px; }
-        .modal-sheet { background: var(--card-bg); border-radius: 20px; padding: 20px; width: 100%; max-width: 340px; position: relative; }
+        .blur-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.45); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); z-index: 999; display: flex; align-items: flex-end; justify-content: center; }
+        .modal-sheet { background: var(--card-bg); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; width: 100%; max-width: 500px; position: relative; max-height: 90vh; overflow-y: auto; }
         .close-cross { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; background: #f4f4f7; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; color: var(--tg-hint); }
+        
         .step-card { display: flex; align-items: center; justify-content: space-between; background: #f8f8fa; border: 1px solid #e5e5ea; padding: 12px; border-radius: 12px; margin-top: 10px; }
         .status-pill { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
         .pill-ok { background: #e8f5e9; color: #2e7d32; }
         .pill-need { background: #ffebee; color: #c62828; }
+
+        /* Стиль экрана оплаты Wallet */
+        .wallet-amount-box { text-align: center; margin: 20px 0; }
+        .wallet-input-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .wallet-input { font-size: 38px; font-weight: 800; border: none; outline: none; width: 140px; text-align: right; background: transparent; }
+        .wallet-currency { font-size: 28px; font-weight: 700; color: #8e8e93; }
+        .wallet-subtext { font-size: 14px; color: var(--tg-hint); margin-top: 4px; font-weight: 500; }
+        .btn-link { color: var(--accent-blue); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 6px; display: inline-block; }
+        
+        .wallet-details-card { background: #f8f8fa; border-radius: 14px; padding: 12px 16px; margin: 16px 0; }
+        .wallet-detail-item { display: flex; justify-content: space-between; padding: 8px 0; font-size: 13px; border-bottom: 0.5px solid #e5e5ea; }
+        .wallet-detail-item:last-child { border-bottom: none; }
+        .wallet-detail-label { color: var(--tg-hint); }
+        .wallet-detail-value { font-weight: 600; }
+        
+        .btn-wallet-submit { width: 100%; padding: 14px; border-radius: 12px; background: var(--accent-blue); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; }
 
         .hidden { display: none !important; }
     </style>
@@ -76,7 +94,7 @@
 
     <!-- Модальное окно верификации -->
     <div id="auth-blur-modal" class="blur-overlay hidden" onclick="if(event.target.id==='auth-blur-modal') closeAuthModal()">
-        <div class="modal-sheet">
+        <div class="modal-sheet" style="border-radius: 20px; margin-bottom: auto; margin-top: auto;">
             <div class="close-cross" onclick="closeAuthModal()">✕</div>
             
             <div style="text-align: center; margin-bottom: 16px;">
@@ -109,6 +127,43 @@
         </div>
     </div>
 
+    <!-- Экран сделки Wallet Style -->
+    <div id="deal-modal" class="blur-overlay hidden" onclick="if(event.target.id==='deal-modal') closeDealModal()">
+        <div class="modal-sheet">
+            <div class="close-cross" onclick="closeDealModal()">✕</div>
+            
+            <div style="text-align: center; font-size: 13px; color: var(--tg-hint); font-weight: 600;">
+                Вы покупаете у <span id="deal-maker-name" style="color:#000;">Maker</span>
+            </div>
+
+            <div class="wallet-amount-box">
+                <div class="wallet-input-row">
+                    <input type="number" id="deal-fiat-input" class="wallet-input" value="500" oninput="calculateCrypto()">
+                    <span class="wallet-currency">RUB</span>
+                </div>
+                <div id="deal-crypto-subtext" class="wallet-subtext">0.00 USDT</div>
+                <div class="btn-link" onclick="setBuyAll()">Купить все</div>
+            </div>
+
+            <div class="wallet-details-card">
+                <div class="wallet-detail-item">
+                    <span class="wallet-detail-label">Метод оплаты</span>
+                    <span id="deal-bank-name" class="wallet-detail-value">Сбербанк</span>
+                </div>
+                <div class="wallet-detail-item">
+                    <span class="wallet-detail-label">Лимиты</span>
+                    <span id="deal-limits-text" class="wallet-detail-value">0 - 0 RUB</span>
+                </div>
+                <div class="wallet-detail-item">
+                    <span class="wallet-detail-label">Курс</span>
+                    <span id="deal-rate-text" class="wallet-detail-value">0.00 RUB</span>
+                </div>
+            </div>
+
+            <button class="btn-wallet-submit" onclick="submitDeal()">КУПИТЬ</button>
+        </div>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         
@@ -117,6 +172,8 @@
 
         let currentSide = 'sell';
         let userStatus = { is_verified: false, has_wallet: false, has_phone: false };
+        
+        let activeAd = null;
 
         const fetchHeaders = {
             'Content-Type': 'application/json',
@@ -207,29 +264,69 @@
             }
         }
 
-        async function executeBuy(adId) {
-            const cryptoAmount = prompt("Введите количество USDT:", "10");
-            if (!cryptoAmount || isNaN(cryptoAmount) || parseFloat(cryptoAmount) <= 0) return;
+        /* Логика расчета и работы окна сделки */
+        function openDealModal(ad) {
+            activeAd = ad;
+            document.getElementById('deal-maker-name').innerText = `Maker_${ad.owner}`;
+            document.getElementById('deal-bank-name').innerText = ad.bank;
+            
+            const maxFiat = (ad.amount * ad.price).toFixed(2);
+            document.getElementById('deal-limits-text').innerText = `100 ~ ${maxFiat} RUB`;
+            document.getElementById('deal-rate-text').innerText = `${ad.price} RUB`;
+            
+            document.getElementById('deal-fiat-input').value = Math.min(500, maxFiat);
+            calculateCrypto();
+
+            document.getElementById('deal-modal').classList.remove('hidden');
+        }
+
+        function closeDealModal() {
+            document.getElementById('deal-modal').classList.add('hidden');
+        }
+
+        function calculateCrypto() {
+            if (!activeAd) return;
+            const fiatVal = parseFloat(document.getElementById('deal-fiat-input').value) || 0;
+            const cryptoVal = (fiatVal / activeAd.price).toFixed(4);
+            document.getElementById('deal-crypto-subtext').innerText = `≈ ${cryptoVal} USDT`;
+        }
+
+        function setBuyAll() {
+            if (!activeAd) return;
+            const maxFiat = (activeAd.amount * activeAd.price).toFixed(2);
+            document.getElementById('deal-fiat-input').value = maxFiat;
+            calculateCrypto();
+        }
+
+        async function submitDeal() {
+            if (!activeAd) return;
+            const fiatVal = parseFloat(document.getElementById('deal-fiat-input').value);
+            const cryptoVal = fiatVal / activeAd.price;
+
+            if (!fiatVal || fiatVal <= 0) {
+                alert("Введите корректную сумму");
+                return;
+            }
 
             try {
-                log("Создание сделки...");
+                log("Отправка запроса на создание сделки...");
                 const response = await fetch(`${API}/api/deals/create`, {
                     method: 'POST',
                     headers: fetchHeaders,
                     body: JSON.stringify({
-                        ad_id: adId,
+                        ad_id: activeAd.id,
                         buyer_id: String(user.id),
-                        amount_crypto: parseFloat(cryptoAmount)
+                        amount_crypto: parseFloat(cryptoVal.toFixed(4))
                     })
                 });
 
                 if (response.ok) {
                     const resData = await response.json();
-                    alert(`Сделка #${resData.deal_id} создана! Перейдите в чат с ботом для оплаты.`);
+                    alert(`Сделка #${resData.deal_id} успешно создана! Чат откроется в боте.`);
                     tg.close();
                 } else {
                     const errData = await response.json();
-                    alert(`Ошибка создания сделки: ${errData.detail || 'Неизвестная ошибка'}`);
+                    alert(`Ошибка: ${errData.detail || 'Ошибка базы данных'}`);
                 }
             } catch (e) {
                 log(`Ошибка сети (create deal): ${e.message}`);
@@ -237,10 +334,10 @@
             }
         }
 
-        async function handleDealClick(adId) {
+        async function handleDealClick(ad) {
             await checkUserStatus();
             if (userStatus.is_verified) {
-                executeBuy(adId);
+                openDealModal(ad);
             } else {
                 openAuthModal();
             }
@@ -302,7 +399,9 @@
                     return;
                 }
 
-                list.innerHTML = data.ads.map(ad => `
+                window.marketAds = data.ads;
+
+                list.innerHTML = data.ads.map((ad, idx) => `
                     <div class="card">
                         <div class="card-header">
                             <div class="user-info">👤 Maker_${ad.owner}</div>
@@ -313,7 +412,7 @@
                             <span style="color: var(--tg-hint); font-size:12px;">Лимит: ${ad.amount} USDT</span>
                         </div>
                         <div class="limit-info">Банк: <b>${ad.bank}</b></div>
-                        <button class="btn-action ${side === 'sell' ? 'btn-buy' : 'btn-sell'}" onclick="handleDealClick(${ad.id})">
+                        <button class="btn-action ${side === 'sell' ? 'btn-buy' : 'btn-sell'}" onclick="handleDealClick(window.marketAds[${idx}])">
                             ${side === 'sell' ? 'Купить USDT' : 'Продать USDT'}
                         </button>
                     </div>
