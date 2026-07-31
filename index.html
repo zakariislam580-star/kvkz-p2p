@@ -225,25 +225,36 @@
             document.getElementById('auth-blur-modal').classList.add('hidden');
         }
 
-        // ОБНОВЛЕННАЯ ФУНКЦИЯ ЗАПРОСА ТЕЛЕФОНА
-        async function runNextVerificationStep() {
-            if (!userStatus.has_wallet) {
-                tonConnectUI.openModal();
-            } else if (!userStatus.has_phone) {
-                try {
-                    log("Запрос кнопки телефона в бот...");
-                    await fetch(`${API}/api/user/request-phone`, {
-                        method: 'POST',
-                        headers: fetchHeaders,
-                        body: JSON.stringify({ user_id: String(user.id) })
-                    });
-                    tg.close();
-                } catch (e) {
-                    log(`Ошибка отправки запроса: ${e.message}`);
-                }
-            }
-        }
+       async function runNextVerificationStep() {
+    if (!userStatus.has_wallet) {
+        tonConnectUI.openModal();
+    } else if (!userStatus.has_phone) {
+        try {
+            log("Запрос кнопки телефона в бот...");
+            
+            const response = await fetch(`${API}/api/user/request-phone`, {
+                method: 'POST',
+                headers: fetchHeaders,
+                body: JSON.stringify({ user_id: String(user.id) })
+            });
 
+            if (response.ok) {
+                log("Сообщение отправлено в бот!");
+                // Небольшая задержка перед закрытием, чтобы запрос гарантированно завершился
+                setTimeout(() => {
+                    tg.close();
+                }, 300);
+            } else {
+                const errData = await response.json();
+                log(`Ошибка сервера: ${JSON.stringify(errData)}`);
+                alert("Не удалось отправить запрос в бот. Проверьте консоль.");
+            }
+        } catch (e) {
+            log(`Ошибка сети при запросе телефона: ${e.message}`);
+            alert(` Ошибка сети: ${e.message}`);
+        }
+    }
+}
         async function loadMarket(side = 'sell') {
             try {
                 const res = await fetch(`${API}/api/market?type=${side}`, {
