@@ -52,6 +52,7 @@
             padding-bottom: 75px;
             color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow-x: hidden;
         }
 
         /* Шапка */
@@ -91,14 +92,14 @@
             color: var(--text-color); 
             cursor: pointer; 
             border: none; 
-            transition: all 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .selector-btn.active-buy { background: var(--btn-buy-color); color: #fff; }
         .selector-btn.active-sell { background: var(--btn-sell-color); color: #fff; }
         .selector-btn.active-tab { background: var(--brand-accent); color: #fff; }
 
-        /* Гармоничные Фильтры с правильным z-index слоем */
+        /* Гармоничные Фильтры с плавной анимацией */
         .filter-bar {
             display: flex;
             gap: 8px;
@@ -143,25 +144,38 @@
 
         .custom-dropdown {
             position: absolute;
-            top: calc(100% + 4px);
+            top: calc(100% + 6px);
             left: 0;
             right: 0;
             background: var(--card-bg);
             border: 0.5px solid var(--border-color);
-            border-radius: 10px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             z-index: 999;
-            display: none;
             overflow: hidden;
+            
+            /* Плавное открытие выпадающего списка */
+            opacity: 0;
+            visibility: hidden;
+            transform: scaleY(0.85) translateY(-10px);
+            transform-origin: top center;
+            transition: opacity 0.25s cubic-bezier(0.25, 1, 0.5, 1), 
+                        transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), 
+                        visibility 0.25s;
         }
 
-        .custom-dropdown.show { display: block; }
+        .custom-dropdown.show { 
+            opacity: 1;
+            visibility: visible;
+            transform: scaleY(1) translateY(0);
+        }
 
         .dropdown-item {
             padding: 10px 12px;
             font-size: 13px;
             color: var(--text-color);
             cursor: pointer;
+            transition: background-color 0.15s ease;
         }
 
         .dropdown-item:hover, .dropdown-item.selected {
@@ -219,12 +233,11 @@
             border: none;
             color: #fff;
             cursor: pointer;
-            transition: transform 0.1s ease, opacity 0.2s ease;
+            transition: transform 0.15s ease, opacity 0.2s ease;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
-        .btn-action-sm:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-action-sm:active { transform: scale(0.95); opacity: 0.9; }
         
-        /* Цвета кнопок купить/продать */
         .btn-buy-sm { background: var(--btn-buy-color); }
         .btn-sell-sm { background: var(--btn-sell-color); }
 
@@ -249,7 +262,6 @@
         .card-detail-label { color: var(--tg-hint); }
         .card-detail-val { font-weight: 500; word-break: break-word; }
 
-        /* Описание в карточке */
         .card-desc-box {
             margin-top: 8px;
             padding-top: 8px;
@@ -381,9 +393,11 @@
             gap: 8px; 
             cursor: pointer; 
             margin-top: 10px; 
+            transition: transform 0.15s ease;
         }
+        .create-ad-btn:active { transform: scale(0.98); }
 
-        /* Modal Sheets & Overlays */
+        /* ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА И ШТОРЫ (SMOOTH BOTTOM SHEETS) */
         .blur-overlay { 
             position: fixed; 
             top: 0; left: 0; right: 0; bottom: 0; 
@@ -394,8 +408,19 @@
             display: flex; 
             align-items: flex-end; 
             justify-content: center;
-            transition: opacity 0.25s ease;
+            
+            /* Плавное проявление фонового размытия */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), 
+                        visibility 0.3s;
         }
+
+        .blur-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
         .modal-sheet { 
             background: var(--card-bg); 
             border-top-left-radius: 20px; 
@@ -408,7 +433,17 @@
             overflow-y: auto; 
             color: var(--text-color);
             border-top: 0.5px solid var(--border-color);
+            
+            /* Плавное выдвижение снизу вверх */
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform;
         }
+
+        .blur-overlay.active .modal-sheet {
+            transform: translateY(0);
+        }
+
         .close-cross { 
             position: absolute; 
             top: 14px; right: 14px; 
@@ -446,7 +481,8 @@
         .form-input { width: 100%; background: var(--card-bg-sub); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; color: var(--text-color); font-size: 14px; outline: none; font-family: inherit; }
         textarea.form-input { resize: vertical; min-height: 70px; }
 
-        .btn-wallet-submit { width: 100%; padding: 14px; border-radius: 12px; background: var(--brand-accent); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; }
+        .btn-wallet-submit { width: 100%; padding: 14px; border-radius: 12px; background: var(--brand-accent); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; transition: transform 0.15s ease; }
+        .btn-wallet-submit:active { transform: scale(0.97); }
         .btn-wallet-cancel { width: 100%; padding: 12px; border-radius: 12px; background: transparent; color: var(--btn-sell-color); font-size: 14px; font-weight: 600; border: none; cursor: pointer; margin-top: 4px; }
 
         .hidden { display: none !important; }
@@ -468,7 +504,7 @@
             </div>
         </div>
 
-        <!-- ГАРМОНИЧНЫЕ ФИЛЬТРЫ (Z-INDEX 200) -->
+        <!-- ГАРМОНИЧНЫЕ ФИЛЬТРЫ -->
         <div class="filter-bar">
             <!-- Дропдаун Крипта -->
             <div class="custom-select-wrapper">
@@ -581,9 +617,9 @@
         </div>
     </div>
 
-    <!-- НИЖНЯЯ НАВИГАЦИЯ (СЧИТЫВАЮТСЯ ВЕКТОРЫ) -->
+    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
     <div class="bottom-nav">
-        <!-- P2P Иконка (Сумка) -->
+        <!-- P2P Иконка -->
         <div class="nav-item active" onclick="switchNav('market', this)">
             <div class="nav-icon">
                 <svg viewBox="0 0 24 24" width="24" height="24"><path stroke="var(--icon-color)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" d="M6 9h12l1 11H5L6 9z M9 9V6a3 3 0 0 1 6 0v3"/></svg>
@@ -591,7 +627,7 @@
             <span>P2P</span>
         </div>
         
-        <!-- ИСПРАВЛЕННАЯ СТИЛЬНАЯ ИКОНКА СДЕЛКИ (Документ/Список) -->
+        <!-- Сделки Иконка -->
         <div class="nav-item" onclick="switchNav('orders', this)">
             <div class="nav-icon">
                 <svg viewBox="0 0 24 24" width="24" height="24"><path stroke="var(--tg-hint)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5h6m-6 9h6m-6 4h4"/></svg>
@@ -608,8 +644,8 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО СОЗДАНИЯ ОБЪЯВЛЕНИЯ С ОПИСАНИЕМ -->
-    <div id="create-ad-modal" class="blur-overlay hidden">
+    <!-- МОДАЛЬНОЕ ОКНО СОЗДАНИЯ ОБЪЯВЛЕНИЯ -->
+    <div id="create-ad-modal" class="blur-overlay" onclick="if(event.target.id==='create-ad-modal') closeCreateAdModal()">
         <div class="modal-sheet">
             <div class="close-cross" onclick="closeCreateAdModal()">✕</div>
             <div style="text-align: center; font-weight: 800; font-size: 18px; margin-bottom: 16px;">Новое объявление</div>
@@ -643,7 +679,6 @@
                 </select>
             </div>
 
-            <!-- ДОБАВЛЕННОЕ ПОЛЕ ОПИСАНИЯ -->
             <div class="form-group">
                 <label class="form-label">Описание / Условия сделки (Необязательно)</label>
                 <textarea id="new-ad-desc" class="form-input" placeholder="Например: Перевод только с карты Сбера на Сбер. Без третьих лиц."></textarea>
@@ -654,7 +689,7 @@
     </div>
 
     <!-- МОДАЛЬНОЕ ОКНО ВЕРИФИКАЦИИ -->
-    <div id="auth-blur-modal" class="blur-overlay hidden" onclick="if(event.target.id==='auth-blur-modal') closeAuthModal()">
+    <div id="auth-blur-modal" class="blur-overlay" onclick="if(event.target.id==='auth-blur-modal') closeAuthModal()">
         <div class="modal-sheet" style="border-radius: 20px; margin-bottom: auto; margin-top: auto;">
             <div class="close-cross" onclick="closeAuthModal()">✕</div>
             
@@ -689,7 +724,7 @@
     </div>
 
     <!-- МОДАЛЬНОЕ ОКНО СДЕЛКИ -->
-    <div id="deal-modal" class="blur-overlay hidden">
+    <div id="deal-modal" class="blur-overlay" onclick="if(event.target.id==='deal-modal') closeDealModal()">
         <div class="modal-sheet">
             <div class="close-cross" onclick="closeDealModal()">✕</div>
             
@@ -825,7 +860,7 @@
             else btn.innerText = "Все подтверждено!";
         }
 
-        /* Выпадающие списки фильтров */
+        /* Выпадающие списки фильтров (Плавные) */
         function toggleDropdown(id) {
             const el = document.getElementById(id);
             const isShown = el.classList.contains('show');
@@ -881,12 +916,21 @@
             loadUserOrders(tab);
         }
 
+        /* Функции управления плавными модалками */
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
         function openCreateAdModal() {
-            document.getElementById('create-ad-modal').classList.remove('hidden');
+            openModal('create-ad-modal');
         }
 
         function closeCreateAdModal() {
-            document.getElementById('create-ad-modal').classList.add('hidden');
+            closeModal('create-ad-modal');
         }
 
         function setAdType(type) {
@@ -982,11 +1026,11 @@
             document.getElementById('deal-fiat-input').value = Math.min(500, maxFiat);
             calculateCrypto();
 
-            document.getElementById('deal-modal').classList.remove('hidden');
+            openModal('deal-modal');
         }
 
         function closeDealModal() {
-            document.getElementById('deal-modal').classList.add('hidden');
+            closeModal('deal-modal');
         }
 
         function calculateCrypto() {
@@ -1065,11 +1109,11 @@
 
         function openAuthModal() {
             updateModalView();
-            document.getElementById('auth-blur-modal').classList.remove('hidden');
+            openModal('auth-blur-modal');
         }
 
         function closeAuthModal() {
-            document.getElementById('auth-blur-modal').classList.add('hidden');
+            closeModal('auth-blur-modal');
         }
 
         async function runNextVerificationStep() {
@@ -1103,7 +1147,6 @@
             }
         }
 
-        /* Отрисовка карточек с опциональным описанием */
         function renderMarketList(ads, side) {
             const list = document.getElementById('market-list');
             
