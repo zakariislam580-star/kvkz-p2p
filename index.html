@@ -7,112 +7,344 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { 
-            --tg-hint: #8e8e93; 
-            --tg-link: #007aff; 
-            
-            /* Фирменная цветовая палитра (Светлая тема по умолчанию) */
-            --bg: #f4f4f7; 
-            --card-bg: #ffffff;
-            --card-bg-sub: #efeff4;
-            --text-color: #000000;
-            --border-color: #e5e5ea;
+        /* Переменные темы: Светлая тема по умолчанию */
+        :root {
+            --brand-blue: #BBCCD6;
+            --icon-color: #BBCCD6;
+            --bg: #FFFFFF;
+            --card-bg: #F7F9FA;
+            --card-bg-sub: #EFEFF4;
+            --text-color: #1F2937;
+            --border-color: #E5E7EB;
+            --tg-hint: #6B7280;
 
-            /* Фирменный синий (Light) */
-            --brand-blue: #0052cc; 
-            --brand-blue-hover: #0043a8;
-
-            --active-green: #34c759; 
-            --active-red: #ff3b30; 
+            --active-green: #34C759;
+            --active-red: #FF3B30;
         }
 
-        /* Автоматическая подстройка под темную тему Telegram / Устройства */
+        /* Тёмная тема */
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg: #0b0e14; 
-                --card-bg: #151a23;
-                --card-bg-sub: #1e2532;
-                --text-color: #ffffff;
-                --border-color: #262f40;
+                --brand-blue: #8FAFBE;
+                --icon-color: #A7C6D5;
+                --bg: #121212;
+                --card-bg: #1E1E1E;
+                --card-bg-sub: #2A2A2A;
+                --text-color: #F3F4F6;
+                --border-color: #374151;
+                --tg-hint: #9CA3AF;
 
-                /* Фирменный синий (Dark - ярче и насыщеннее, не тусклый) */
-                --brand-blue: #1a73e8; 
-                --brand-blue-hover: #3b82f6;
+                --active-green: #30D158;
+                --active-red: #FF453A;
             }
         }
 
-        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding-bottom: 75px; color: var(--text-color); }
-
-        #debug-console {
-            background: #111; color: var(--active-green); font-family: monospace; font-size: 11px;
-            padding: 8px; margin: 8px; border-radius: 8px; word-break: break-all; max-height: 80px; overflow-y: auto;
+        * { 
+            box-sizing: border-box; 
+            -webkit-user-select: none; 
+            user-select: none; 
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
         }
 
-        .header { background: var(--card-bg); padding: 14px 16px; font-weight: 700; font-size: 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--border-color); }
-        .trade-header { background: var(--card-bg); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 0.5px solid var(--border-color); }
-        .selector-group { display: flex; background: var(--card-bg-sub); padding: 2px; border-radius: 9px; }
-        .selector-btn { padding: 6px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; background: transparent; color: var(--text-color); cursor: pointer; border: none; }
+        html, body {
+            scroll-behavior: smooth;
+            background: var(--bg);
+            margin: 0;
+            padding-bottom: 75px;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #debug-console {
+            background: var(--card-bg);
+            color: var(--brand-blue);
+            font-family: monospace;
+            font-size: 11px;
+            padding: 8px;
+            margin: 8px;
+            border-radius: 8px;
+            word-break: break-all;
+            max-height: 80px;
+            overflow-y: auto;
+            border: 0.5px solid var(--border-color);
+        }
+
+        /* Шапка */
+        .header { 
+            background: var(--card-bg); 
+            padding: 14px 16px; 
+            font-weight: 700; 
+            font-size: 18px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 0.5px solid var(--border-color); 
+        }
+
+        .trade-header { 
+            background: var(--card-bg); 
+            padding: 10px 16px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            border-bottom: 0.5px solid var(--border-color); 
+        }
+
+        .selector-group { 
+            display: flex; 
+            background: var(--card-bg-sub); 
+            padding: 3px; 
+            border-radius: 10px; 
+        }
+
+        .selector-btn { 
+            padding: 6px 16px; 
+            border-radius: 8px; 
+            font-size: 13px; 
+            font-weight: 600; 
+            background: transparent; 
+            color: var(--text-color); 
+            cursor: pointer; 
+            border: none; 
+            transition: all 0.2s ease;
+        }
+
         .selector-btn.active-buy { background: var(--active-green); color: #fff; }
         .selector-btn.active-sell { background: var(--active-red); color: #fff; }
         .selector-btn.active-tab { background: var(--brand-blue); color: #fff; }
 
-        .card { background: var(--card-bg); margin: 10px 12px; border-radius: 14px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 0.5px solid var(--border-color); }
-        .card-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
-        .user-info { font-weight: 700; font-size: 14px; }
-        .stats-info { color: var(--tg-hint); }
-        .price-row { margin: 6px 0; display: flex; align-items: baseline; justify-content: space-between; }
-        .price { font-size: 22px; font-weight: 800; }
-        .limit-info { font-size: 12px; color: var(--tg-hint); margin-bottom: 12px; }
+        /* Панель фильтров */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--card-bg);
+            border-bottom: 0.5px solid var(--border-color);
+            overflow-x: auto;
+        }
 
-        .btn-action { width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 14px; border: none; color: #fff; cursor: pointer; }
+        .filter-item {
+            flex: 1;
+            min-width: 90px;
+            background: var(--card-bg-sub);
+            border: 0.5px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: var(--text-color);
+            outline: none;
+        }
+
+        /* Карточка объявления */
+        .card { 
+            background: var(--card-bg); 
+            margin: 10px 12px; 
+            border-radius: 14px; 
+            padding: 14px; 
+            border: 0.5px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 10px; 
+        }
+
+        .user-info { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+        .stats-info { font-size: 12px; color: var(--tg-hint); }
+        .bank-badge { background: var(--card-bg-sub); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+
+        .price-row { margin: 8px 0; display: flex; align-items: baseline; justify-content: space-between; }
+        .price { font-size: 20px; font-weight: 800; color: var(--text-color); }
+
+        .limit-row { font-size: 12px; color: var(--tg-hint); margin-bottom: 12px; display: flex; justify-content: space-between; }
+
+        .btn-action { 
+            width: 100%; 
+            padding: 11px; 
+            border-radius: 10px; 
+            font-weight: 700; 
+            font-size: 14px; 
+            border: none; 
+            color: #fff; 
+            cursor: pointer; 
+            transition: opacity 0.2s ease;
+        }
+        .btn-action:active { opacity: 0.8; }
         .btn-buy { background: var(--active-green); }
         .btn-sell { background: var(--active-red); }
 
-        /* Вкладки (Views) */
+        /* Вкладки */
         .view-screen { display: none; }
         .view-screen.active { display: block; }
 
-        /* Нижная навигация (Bottom Bar) */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: var(--card-bg); border-top: 0.5px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--tg-hint); font-size: 10px; font-weight: 600; cursor: pointer; text-decoration: none; width: 33%; height: 100%; }
+        /* Нижная навигация */
+        .bottom-nav { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            height: 60px; 
+            background: var(--card-bg); 
+            border-top: 0.5px solid var(--border-color); 
+            display: flex; 
+            justify-content: space-around; 
+            align-items: center; 
+            z-index: 100; 
+        }
+
+        .nav-item { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            color: var(--tg-hint); 
+            font-size: 10px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            width: 33%; 
+            height: 100%; 
+            transition: color 0.2s ease;
+        }
+
+        .nav-icon { 
+            width: 24px; 
+            height: 24px; 
+            margin-bottom: 3px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .nav-icon img, .nav-icon svg { width: 100%; height: 100%; object-fit: contain; }
         
-        /* Стилизованные контейнеры под кастомные изображения/иконки */
-        .nav-icon { width: 22px; height: 22px; margin-bottom: 3px; display: flex; align-items: center; justify-content: center; }
-        .nav-icon img { width: 100%; height: 100%; object-fit: contain; }
-        .nav-item.active { color: var(--brand-blue); }
-        .nav-item.active .nav-icon { filter: drop-shadow(0px 0px 4px var(--brand-blue)); }
+        .nav-item.active { color: var(--text-color); }
+        .nav-item.active .nav-icon svg path { fill: var(--icon-color); }
 
         /* Профиль */
-        .profile-container { padding: 16px; text-align: center; }
-        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--brand-blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 12px auto; font-weight: 700; }
-        .profile-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-        .profile-badge { font-size: 12px; color: var(--tg-hint); margin-bottom: 20px; }
-        .profile-badge span { color: var(--brand-blue); cursor: pointer; font-weight: 600; }
+        .profile-container { padding: 20px 16px; text-align: center; }
+        .profile-avatar { 
+            width: 76px; 
+            height: 76px; 
+            border-radius: 50%; 
+            background: var(--brand-blue); 
+            color: #fff; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 32px; 
+            margin: 0 auto 12px auto; 
+            font-weight: 700; 
+        }
+        .profile-name { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
 
         .stats-grid { display: flex; gap: 10px; margin-bottom: 20px; }
-        .stat-box { flex: 1; background: var(--card-bg); border-radius: 16px; padding: 16px; text-align: center; border: 0.5px solid var(--border-color); }
-        .stat-val { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+        .stat-box { 
+            flex: 1; 
+            background: var(--card-bg); 
+            border-radius: 14px; 
+            padding: 14px; 
+            text-align: center; 
+            border: 0.5px solid var(--border-color); 
+        }
+        .stat-val { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
         .stat-lbl { font-size: 11px; color: var(--tg-hint); font-weight: 500; }
 
-        .menu-list { background: var(--card-bg); border-radius: 16px; overflow: hidden; margin-bottom: 20px; border: 0.5px solid var(--border-color); }
-        .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 0.5px solid var(--border-color); font-size: 14px; font-weight: 600; }
+        .menu-list { 
+            background: var(--card-bg); 
+            border-radius: 14px; 
+            overflow: hidden; 
+            margin-bottom: 20px; 
+            border: 0.5px solid var(--border-color); 
+        }
+        .menu-item { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 14px 16px; 
+            border-bottom: 0.5px solid var(--border-color); 
+            font-size: 14px; 
+            font-weight: 600; 
+        }
         .menu-item:last-child { border-bottom: none; }
         .menu-left { display: flex; align-items: center; gap: 12px; }
-        .menu-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-        .menu-icon img { width: 100%; height: 100%; object-fit: contain; }
+        .menu-icon { 
+            width: 26px; 
+            height: 26px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .menu-icon svg path { fill: var(--icon-color); }
 
         .toggle-switch { width: 44px; height: 24px; background: var(--card-bg-sub); border-radius: 12px; position: relative; cursor: pointer; }
         .toggle-switch.on { background: var(--active-green); }
         .toggle-switch::after { content: ''; position: absolute; width: 20px; height: 20px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: 0.2s; }
         .toggle-switch.on::after { left: 22px; }
 
-        .create-ad-btn { background: var(--card-bg); border: 1.5px dashed var(--brand-blue); color: var(--brand-blue); width: 100%; padding: 14px; border-radius: 14px; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin-top: 10px; }
+        .create-ad-btn { 
+            background: var(--card-bg); 
+            border: 1.5px dashed var(--brand-blue); 
+            color: var(--text-color); 
+            width: 100%; 
+            padding: 14px; 
+            border-radius: 14px; 
+            font-weight: 700; 
+            font-size: 15px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+            cursor: pointer; 
+            margin-top: 10px; 
+        }
 
         /* Modal Sheets & Overlays */
-        .blur-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); z-index: 999; display: flex; align-items: flex-end; justify-content: center; }
-        .modal-sheet { background: var(--card-bg); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; width: 100%; max-width: 500px; position: relative; max-height: 90vh; overflow-y: auto; color: var(--text-color); }
-        .close-cross { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; background: var(--card-bg-sub); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; color: var(--tg-hint); }
+        .blur-overlay { 
+            position: fixed; 
+            top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0, 0, 0, 0.5); 
+            -webkit-backdrop-filter: blur(8px); 
+            backdrop-filter: blur(8px); 
+            z-index: 999; 
+            display: flex; 
+            align-items: flex-end; 
+            justify-content: center;
+            transition: opacity 0.25s ease;
+        }
+        .modal-sheet { 
+            background: var(--card-bg); 
+            border-top-left-radius: 20px; 
+            border-top-right-radius: 20px; 
+            padding: 20px; 
+            width: 100%; 
+            max-width: 500px; 
+            position: relative; 
+            max-height: 90vh; 
+            overflow-y: auto; 
+            color: var(--text-color);
+            border-t: 0.5px solid var(--border-color);
+        }
+        .close-cross { 
+            position: absolute; 
+            top: 14px; right: 14px; 
+            width: 28px; height: 28px; 
+            background: var(--card-bg-sub); 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            font-weight: bold; 
+            color: var(--tg-hint); 
+        }
 
         .step-card { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg-sub); padding: 12px; border-radius: 12px; margin-top: 10px; }
         .status-pill { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
@@ -121,9 +353,9 @@
 
         .wallet-amount-box { text-align: center; margin: 20px 0; }
         .wallet-input-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .wallet-input { font-size: 34px; font-weight: 800; border: none; outline: none; width: 180px; text-align: center; background: transparent; color: var(--text-color); border-bottom: 2px solid var(--brand-blue); }
-        .wallet-currency { font-size: 24px; font-weight: 700; color: var(--tg-hint); }
-        .wallet-subtext { font-size: 14px; color: var(--tg-hint); margin-top: 4px; font-weight: 500; }
+        .wallet-input { font-size: 32px; font-weight: 800; border: none; outline: none; width: 180px; text-align: center; background: transparent; color: var(--text-color); border-bottom: 2px solid var(--brand-blue); }
+        .wallet-currency { font-size: 22px; font-weight: 700; color: var(--tg-hint); }
+        .wallet-subtext { font-size: 13px; color: var(--tg-hint); margin-top: 4px; font-weight: 500; }
         .btn-link { color: var(--brand-blue); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 6px; display: inline-block; }
 
         .wallet-details-card { background: var(--card-bg-sub); border-radius: 14px; padding: 12px 16px; margin: 16px 0; }
@@ -146,7 +378,7 @@
 
     <div id="debug-console">Инициализация...</div>
 
-    <!-- ВКЛАДКА 1: P2P (МАРКЕТ) -->
+    <!-- ВКЛАДКА 1: P2P -->
     <div id="view-market" class="view-screen active">
         <div class="header">
             <span>KVKZ P2P</span>
@@ -161,10 +393,27 @@
             <div style="font-weight: 700; font-size: 13px; color: var(--tg-hint);">USDT / RUB</div>
         </div>
 
+        <!-- ФИЛЬТРЫ ПОИСКА (Крипта, Сумма, Оплата) -->
+        <div class="filter-bar">
+            <select id="filter-crypto" class="filter-item" onchange="applyFilters()">
+                <option value="USDT">Крипта: USDT</option>
+                <option value="SOON" disabled>Скоро...</option>
+            </select>
+            <input type="number" id="filter-amount" class="filter-item" placeholder="Сумма, RUB" oninput="applyFilters()">
+            <select id="filter-bank" class="filter-item" onchange="applyFilters()">
+                <option value="ALL">Всё оплата</option>
+                <option value="Сбербанк">Сбербанк</option>
+                <option value="Т-Банк (Тинькофф)">Т-Банк</option>
+                <option value="СБП">СБП</option>
+                <option value="ВТБ">ВТБ</option>
+                <option value="Альфа-Банк">Альфа-Банк</option>
+            </select>
+        </div>
+
         <div id="market-list"></div>
     </div>
 
-    <!-- ВКЛАДКА 2: СДЕЛКИ (ОРДЕРА) -->
+    <!-- ВКЛАДКА 2: СДЕЛКИ -->
     <div id="view-orders" class="view-screen">
         <div class="header">
             <span>Мои сделки</span>
@@ -186,7 +435,6 @@
         <div class="profile-container">
             <div class="profile-avatar" id="prof-avatar">U</div>
             <div class="profile-name" id="prof-name">Пользователь</div>
-            <div class="profile-badge">У вас есть статус мерчанта. <span onclick="alert('Заявка отправлена')">Повысить &gt;</span></div>
 
             <div class="stats-grid">
                 <div class="stat-box">
@@ -204,7 +452,7 @@
                     <div class="menu-left">
                         <!-- Иконка способа оплаты (Фото 7) -->
                         <div class="menu-icon">
-                            <img src="payment_icon.png" alt="Payment" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%230052cc\'><path d=\'M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z\'/></svg>'">
+                            <img src="payment_icon.png" alt="Payment" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'22\' height=\'22\'><path fill=\'var(--icon-color)\' d=\'M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z\'/></svg>'">
                         </div>
                         <span>Настройки оплаты</span>
                     </div>
@@ -234,32 +482,32 @@
         </div>
     </div>
 
-    <!-- НИЖНЯЯ НАВИГАЦИЯ (Иконки Фото 4, 5, 6) -->
+    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
     <div class="bottom-nav">
         <div class="nav-item active" onclick="switchNav('market', this)">
             <div class="nav-icon">
-                <!-- Фото 4: Иконка P2P -->
-                <img src="p2p_icon.png" alt="P2P" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%230052cc\'><path d=\'M16 17E1 1 0 0 1 16 17M7 7a1 1 0 0 1 0 0M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm2.5 11.5L11 17l-3.5-3.5 1.4-1.4 2.1 2.1 4.6-4.6z\'/></svg>'">
+                <!-- Фото 4: Иконка P2P (Векторный вариант с четкой геометрией) -->
+                <img src="p2p_icon.png" alt="P2P" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><path fill=\'var(--icon-color)\' d=\'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z\'/></svg>'">
             </div>
             <span>P2P</span>
         </div>
         <div class="nav-item" onclick="switchNav('orders', this)">
             <div class="nav-icon">
                 <!-- Фото 5: Иконка Сделки -->
-                <img src="orders_icon.png" alt="Сделки" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%238e8e93\'><path d=\'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z\'/></svg>'">
+                <img src="orders_icon.png" alt="Сделки" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><path fill=\'var(--tg-hint)\' d=\'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z\'/></svg>'">
             </div>
             <span>Сделки</span>
         </div>
         <div class="nav-item" onclick="switchNav('profile', this)">
             <div class="nav-icon">
                 <!-- Фото 6: Иконка Профиль -->
-                <img src="profile_icon.png" alt="Профиль" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%238e8e93\'><path d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">
+                <img src="profile_icon.png" alt="Профиль" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><path fill=\'var(--tg-hint)\' d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">
             </div>
             <span>Профиль</span>
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО СОЗДАНИЯ ОБЪЯВЛЕНИЯ (ВНУТРИ MINI APP) -->
+    <!-- МОДАЛЬНОЕ ОКНО СОЗДАНИЯ ОБЪЯВЛЕНИЯ -->
     <div id="create-ad-modal" class="blur-overlay hidden">
         <div class="modal-sheet">
             <div class="close-cross" onclick="closeCreateAdModal()">✕</div>
@@ -333,12 +581,11 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО СДЕЛКИ (WALLET STYLE) -->
+    <!-- МОДАЛЬНОЕ ОКНО СДЕЛКИ -->
     <div id="deal-modal" class="blur-overlay hidden">
         <div class="modal-sheet">
             <div class="close-cross" onclick="closeDealModal()">✕</div>
             
-            <!-- ШАГ 1: Ввод суммы -->
             <div id="deal-step-input">
                 <div style="text-align: center; font-size: 13px; color: var(--tg-hint); font-weight: 600;">
                     Вы покупаете у <span id="deal-maker-name" style="color:var(--text-color);">Maker</span>
@@ -371,7 +618,6 @@
                 <button class="btn-wallet-submit" onclick="submitDeal()">КУПИТЬ</button>
             </div>
 
-            <!-- ШАГ 2: Экран активной сделки -->
             <div id="deal-step-active" class="hidden">
                 <div style="text-align: center; margin-bottom: 12px;">
                     <div style="font-size: 13px; color: var(--tg-hint); font-weight: 600;">Сделка <span id="active-deal-id">#0</span></div>
@@ -412,6 +658,7 @@
         let userStatus = { is_verified: false, has_wallet: false, has_phone: false };
         let activeAd = null;
         let activeDealId = null;
+        let allMarketAds = [];
 
         const fetchHeaders = {
             'Content-Type': 'application/json',
@@ -477,10 +724,17 @@
 
         function switchNav(target, el) {
             document.querySelectorAll('.view-screen').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => {
+                i.classList.remove('active');
+                const svgPath = i.querySelector('svg path');
+                if(svgPath) svgPath.style.fill = 'var(--tg-hint)';
+            });
             
             document.getElementById(`view-${target}`).classList.add('active');
             el.classList.add('active');
+
+            const activeSvgPath = el.querySelector('svg path');
+            if(activeSvgPath) activeSvgPath.style.fill = 'var(--icon-color)';
 
             if (target === 'orders') loadUserOrders();
         }
@@ -491,7 +745,6 @@
             loadUserOrders(tab);
         }
 
-        /* Форма создания объявлений */
         function openCreateAdModal() {
             document.getElementById('create-ad-modal').classList.remove('hidden');
         }
@@ -649,7 +902,7 @@
         }
 
         function markAsPaid() {
-            alert("Статус отправлен продавцу! Вы можете отслеживать сделку прямо в чате бота.");
+            alert("Статус отправлен продавцу!");
             closeDealModal();
         }
 
@@ -700,34 +953,61 @@
                 const res = await fetch(`${API}/api/market?type=${side}`, { headers: { 'ngrok-skip-browser-warning': 'true' } });
                 if (!res.ok) return;
                 const data = await res.json();
-                const list = document.getElementById('market-list');
-                
-                if (!data.ads || data.ads.length === 0) {
-                    list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Нет доступных ордеров</div>`;
-                    return;
-                }
-
-                window.marketAds = data.ads;
-
-                list.innerHTML = data.ads.map((ad, idx) => `
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="user-info">👤 Maker_${ad.owner}</div>
-                            <div class="stats-info">★ ${ad.rating}% (${ad.deals_count})</div>
-                        </div>
-                        <div class="price-row">
-                            <span class="price">${ad.price} RUB</span>
-                            <span style="color: var(--tg-hint); font-size:12px;">Лимит: ${ad.amount} USDT</span>
-                        </div>
-                        <div class="limit-info">Банк: <b>${ad.bank}</b></div>
-                        <button class="btn-action ${side === 'sell' ? 'btn-buy' : 'btn-sell'}" onclick="handleDealClick(window.marketAds[${idx}])">
-                            ${side === 'sell' ? 'Купить USDT' : 'Продать USDT'}
-                        </button>
-                    </div>
-                `).join('');
+                allMarketAds = data.ads || [];
+                renderMarketList(allMarketAds, side);
             } catch (e) {
                 log(`Ошибка сети (/market): ${e.message}`);
             }
+        }
+
+        function renderMarketList(ads, side) {
+            const list = document.getElementById('market-list');
+            
+            if (!ads || ads.length === 0) {
+                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Нет доступных ордеров</div>`;
+                return;
+            }
+
+            window.marketAds = ads;
+
+            list.innerHTML = ads.map((ad, idx) => `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="user-info">
+                            <span>Maker_${ad.owner}</span>
+                            <span class="stats-info">★ ${ad.rating}% (${ad.deals_count})</span>
+                        </div>
+                        <span class="bank-badge">${ad.bank}</span>
+                    </div>
+                    
+                    <div class="price-row">
+                        <span class="price">${ad.price} RUB</span>
+                    </div>
+
+                    <div class="limit-row">
+                        <span>Доступно: <b>${ad.amount} USDT</b></span>
+                        <span>Лимиты: 100 ~ ${(ad.amount * ad.price).toFixed(0)} RUB</span>
+                    </div>
+
+                    <button class="btn-action ${side === 'sell' ? 'btn-buy' : 'btn-sell'}" onclick="handleDealClick(window.marketAds[${idx}])">
+                        ${side === 'sell' ? 'Купить USDT' : 'Продать USDT'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function applyFilters() {
+            const amountVal = parseFloat(document.getElementById('filter-amount').value) || 0;
+            const bankVal = document.getElementById('filter-bank').value;
+
+            const filtered = allMarketAds.filter(ad => {
+                const matchesBank = bankVal === 'ALL' || ad.bank === bankVal;
+                const maxFiat = ad.amount * ad.price;
+                const matchesAmount = amountVal === 0 || maxFiat >= amountVal;
+                return matchesBank && matchesAmount;
+            });
+
+            renderMarketList(filtered, currentSide);
         }
 
         function changeSide(side) {
