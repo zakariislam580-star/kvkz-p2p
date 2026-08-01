@@ -7,7 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        /* Переменные темы: Светлая тема по умолчанию */
+        /* Переменные темы */
         :root {
             --brand-blue: #BBCCD6;
             --icon-color: #BBCCD6;
@@ -20,9 +20,9 @@
 
             --active-green: #34C759;
             --active-red: #FF3B30;
+            --btn-blue: #007AFF;
         }
 
-        /* Тёмная тема */
         @media (prefers-color-scheme: dark) {
             :root {
                 --brand-blue: #8FAFBE;
@@ -36,6 +36,7 @@
 
                 --active-green: #30D158;
                 --active-red: #FF453A;
+                --btn-blue: #0A84FF;
             }
         }
 
@@ -53,20 +54,6 @@
             padding-bottom: 75px;
             color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-
-        #debug-console {
-            background: var(--card-bg);
-            color: var(--brand-blue);
-            font-family: monospace;
-            font-size: 11px;
-            padding: 8px;
-            margin: 8px;
-            border-radius: 8px;
-            word-break: break-all;
-            max-height: 80px;
-            overflow-y: auto;
-            border: 0.5px solid var(--border-color);
         }
 
         /* Шапка */
@@ -113,34 +100,82 @@
         .selector-btn.active-sell { background: var(--active-red); color: #fff; }
         .selector-btn.active-tab { background: var(--brand-blue); color: #fff; }
 
-        /* Панель фильтров */
+        /* Увеличенные кастомные фильтры */
         .filter-bar {
             display: flex;
-            gap: 8px;
-            padding: 10px 16px;
+            gap: 10px;
+            padding: 12px 16px;
             background: var(--card-bg);
             border-bottom: 0.5px solid var(--border-color);
             overflow-x: auto;
         }
 
-        .filter-item {
+        .custom-select-wrapper {
+            position: relative;
             flex: 1;
-            min-width: 90px;
-            background: var(--card-bg-sub);
-            border: 0.5px solid var(--border-color);
-            border-radius: 8px;
-            padding: 6px 10px;
-            font-size: 12px;
-            color: var(--text-color);
-            outline: none;
+            min-width: 105px;
         }
 
-        /* Карточка объявления */
+        .filter-box {
+            background: var(--card-bg-sub);
+            border: 0.5px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-color);
+            outline: none;
+            width: 100%;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filter-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-color);
+            font-size: 13px;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        .custom-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: 0.5px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 50;
+            display: none;
+            overflow: hidden;
+        }
+
+        .custom-dropdown.show { display: block; }
+
+        .dropdown-item {
+            padding: 10px 12px;
+            font-size: 13px;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover, .dropdown-item.selected {
+            background: var(--card-bg-sub);
+            font-weight: 700;
+        }
+
+        /* Карточка объявлений по Фото 1 */
         .card { 
             background: var(--card-bg); 
             margin: 10px 12px; 
             border-radius: 14px; 
-            padding: 14px; 
+            padding: 16px; 
             border: 0.5px solid var(--border-color);
             box-shadow: 0 2px 8px rgba(0,0,0,0.03);
             animation: fadeIn 0.3s ease;
@@ -151,42 +186,71 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .card-header { 
-            display: flex; 
-            justify-content: space-between; 
+        .card-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .card-price-block {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-price {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-color);
+        }
+
+        .card-price-sub {
+            font-size: 12px;
+            color: var(--tg-hint);
+            margin-top: 2px;
+        }
+
+        .btn-action-sm {
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.1s ease, opacity 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .btn-action-sm:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-buy-sm { background: var(--btn-blue); }
+        .btn-sell-sm { background: var(--active-red); }
+
+        .card-user-row {
+            display: flex;
             align-items: center;
-            margin-bottom: 10px; 
+            gap: 6px;
+            margin-bottom: 10px;
+            font-size: 13px;
         }
 
-        .user-info { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 6px; }
-        .stats-info { font-size: 12px; color: var(--tg-hint); }
-        .bank-badge { background: var(--card-bg-sub); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .card-user-name { font-weight: 700; }
+        .card-user-stats { color: var(--tg-hint); font-size: 12px; }
 
-        .price-row { margin: 8px 0; display: flex; align-items: baseline; justify-content: space-between; }
-        .price { font-size: 20px; font-weight: 800; color: var(--text-color); }
-
-        .limit-row { font-size: 12px; color: var(--tg-hint); margin-bottom: 12px; display: flex; justify-content: space-between; }
-
-        .btn-action { 
-            width: 100%; 
-            padding: 11px; 
-            border-radius: 10px; 
-            font-weight: 700; 
-            font-size: 14px; 
-            border: none; 
-            color: #fff; 
-            cursor: pointer; 
-            transition: opacity 0.2s ease;
+        .card-details-grid {
+            display: grid;
+            grid-template-columns: 110px 1fr;
+            row-gap: 6px;
+            font-size: 13px;
         }
-        .btn-action:active { opacity: 0.8; }
-        .btn-buy { background: var(--active-green); }
-        .btn-sell { background: var(--active-red); }
+
+        .card-detail-label { color: var(--tg-hint); }
+        .card-detail-val { font-weight: 500; word-break: break-word; }
 
         /* Вкладки */
         .view-screen { display: none; }
         .view-screen.active { display: block; }
 
-        /* Нижная навигация */
+        /* Нижняя навигация */
         .bottom-nav { 
             position: fixed; 
             bottom: 0; 
@@ -226,7 +290,7 @@
         .nav-icon img, .nav-icon svg { width: 100%; height: 100%; object-fit: contain; }
         
         .nav-item.active { color: var(--text-color); }
-        .nav-item.active .nav-icon svg path { fill: var(--icon-color); }
+        .nav-item.active .nav-icon svg path { stroke: var(--icon-color); fill: none; }
 
         /* Профиль */
         .profile-container { padding: 20px 16px; text-align: center; }
@@ -330,7 +394,7 @@
             max-height: 90vh; 
             overflow-y: auto; 
             color: var(--text-color);
-            border-t: 0.5px solid var(--border-color);
+            border-top: 0.5px solid var(--border-color);
         }
         .close-cross { 
             position: absolute; 
@@ -376,8 +440,6 @@
 </head>
 <body>
 
-    <div id="debug-console">Инициализация...</div>
-
     <!-- ВКЛАДКА 1: P2P -->
     <div id="view-market" class="view-screen active">
         <div class="header">
@@ -390,24 +452,44 @@
                 <button id="tab-buy" class="selector-btn active-buy" onclick="changeSide('sell')">Купить</button>
                 <button id="tab-sell" class="selector-btn" onclick="changeSide('buy')">Продать</button>
             </div>
-            <div style="font-weight: 700; font-size: 13px; color: var(--tg-hint);">USDT / RUB</div>
         </div>
 
-        <!-- ФИЛЬТРЫ ПОИСКА (Крипта, Сумма, Оплата) -->
+        <!-- УВЕЛИЧЕННЫЕ КАСТОМНЫЕ ФИЛЬТРЫ -->
         <div class="filter-bar">
-            <select id="filter-crypto" class="filter-item" onchange="applyFilters()">
-                <option value="USDT">Крипта: USDT</option>
-                <option value="SOON" disabled>Скоро...</option>
-            </select>
-            <input type="number" id="filter-amount" class="filter-item" placeholder="Сумма, RUB" oninput="applyFilters()">
-            <select id="filter-bank" class="filter-item" onchange="applyFilters()">
-                <option value="ALL">Всё оплата</option>
-                <option value="Сбербанк">Сбербанк</option>
-                <option value="Т-Банк (Тинькофф)">Т-Банк</option>
-                <option value="СБП">СБП</option>
-                <option value="ВТБ">ВТБ</option>
-                <option value="Альфа-Банк">Альфа-Банк</option>
-            </select>
+            <!-- Дропдаун Крипта -->
+            <div class="custom-select-wrapper">
+                <div class="filter-box" onclick="toggleDropdown('crypto-dropdown')">
+                    <span id="selected-crypto">Крипта: USDT</span>
+                    <span style="font-size:10px; color:var(--tg-hint);">▼</span>
+                </div>
+                <div id="crypto-dropdown" class="custom-dropdown">
+                    <div class="dropdown-item selected" onclick="selectCrypto('USDT')">Крипта: USDT</div>
+                    <div class="dropdown-item" style="opacity: 0.5; cursor: not-allowed;">Скоро...</div>
+                </div>
+            </div>
+
+            <!-- Инпут Суммы -->
+            <div class="custom-select-wrapper" style="flex:1.2;">
+                <div class="filter-box">
+                    <input type="number" id="filter-amount" placeholder="Сумма, RUB" oninput="applyFilters()">
+                </div>
+            </div>
+
+            <!-- Дропдаун Банк -->
+            <div class="custom-select-wrapper" style="flex:1.3;">
+                <div class="filter-box" onclick="toggleDropdown('bank-dropdown')">
+                    <span id="selected-bank">Оплата: Все</span>
+                    <span style="font-size:10px; color:var(--tg-hint);">▼</span>
+                </div>
+                <div id="bank-dropdown" class="custom-dropdown">
+                    <div class="dropdown-item selected" onclick="selectBank('ALL', 'Оплата: Все')">Оплата: Все</div>
+                    <div class="dropdown-item" onclick="selectBank('Сбербанк', 'Сбербанк')">Сбербанк</div>
+                    <div class="dropdown-item" onclick="selectBank('Т-Банк (Тинькофф)', 'Т-Банк')">Т-Банк</div>
+                    <div class="dropdown-item" onclick="selectBank('СБП', 'СБП')">СБП</div>
+                    <div class="dropdown-item" onclick="selectBank('ВТБ', 'ВТБ')">ВТБ</div>
+                    <div class="dropdown-item" onclick="selectBank('Альфа-Банк', 'Альфа-Банк')">Альфа-Банк</div>
+                </div>
+            </div>
         </div>
 
         <div id="market-list"></div>
@@ -450,7 +532,6 @@
             <div class="menu-list">
                 <div class="menu-item" onclick="alert('Раздел в разработке')">
                     <div class="menu-left">
-                        <!-- Иконка способа оплаты (Фото 7) -->
                         <div class="menu-icon">
                             <img src="payment_icon.png" alt="Payment" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'22\' height=\'22\'><path fill=\'var(--icon-color)\' d=\'M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z\'/></svg>'">
                         </div>
@@ -460,7 +541,12 @@
                 </div>
                 <div class="menu-item">
                     <div class="menu-left">
-                        <div class="menu-icon" style="background: var(--card-bg-sub); border-radius: 6px; font-weight: bold; color: var(--brand-blue);">⇄</div>
+                        <!-- Стильная векторная иконка для раздела "Торги" -->
+                        <div class="menu-icon">
+                            <svg viewBox="0 0 24 24" width="22" height="22">
+                                <path fill="var(--icon-color)" d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/>
+                            </svg>
+                        </div>
                         <span>Торги</span>
                     </div>
                     <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
@@ -484,24 +570,22 @@
 
     <!-- НИЖНЯЯ НАВИГАЦИЯ -->
     <div class="bottom-nav">
+        <!-- Фото 2: Идентичная иконка P2P (Shopping Bag) -->
         <div class="nav-item active" onclick="switchNav('market', this)">
             <div class="nav-icon">
-                <!-- Фото 4: Иконка P2P (Векторный вариант с четкой геометрией) -->
-                <img src="p2p_icon.png" alt="P2P" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><path fill=\'var(--icon-color)\' d=\'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z\'/></svg>'">
+                <img src="p2p_icon.png" alt="P2P" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><path stroke=\'var(--icon-color)\' stroke-width=\'2\' fill=\'none\' stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M6 9h12l1 11H5L6 9z M9 9V6a3 3 0 0 1 6 0v3\'/></svg>'">
             </div>
             <span>P2P</span>
         </div>
         <div class="nav-item" onclick="switchNav('orders', this)">
             <div class="nav-icon">
-                <!-- Фото 5: Иконка Сделки -->
-                <img src="orders_icon.png" alt="Сделки" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><path fill=\'var(--tg-hint)\' d=\'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z\'/></svg>'">
+                <img src="orders_icon.png" alt="Сделки" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><path stroke=\'var(--tg-hint)\' stroke-width=\'2\' fill=\'none\' stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z\'/></svg>'">
             </div>
             <span>Сделки</span>
         </div>
         <div class="nav-item" onclick="switchNav('profile', this)">
             <div class="nav-icon">
-                <!-- Фото 6: Иконка Профиль -->
-                <img src="profile_icon.png" alt="Профиль" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><path fill=\'var(--tg-hint)\' d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">
+                <img src="profile_icon.png" alt="Профиль" onerror="this.parentElement.innerHTML='<svg viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><path stroke=\'var(--tg-hint)\' stroke-width=\'2\' fill=\'none\' stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">
             </div>
             <span>Профиль</span>
         </div>
@@ -575,7 +659,7 @@
                 <div id="st-phone" class="status-pill pill-need">Не привязан</div>
             </div>
 
-            <button id="modal-primary-btn" class="btn-action btn-buy" style="margin-top: 16px;" onclick="runNextVerificationStep()">
+            <button id="modal-primary-btn" class="btn-action-sm btn-buy-sm" style="width:100%; padding:14px; border-radius:12px; margin-top: 16px;" onclick="runNextVerificationStep()">
                 Подключить кошелек
             </button>
         </div>
@@ -655,6 +739,7 @@
 
         let currentSide = 'sell';
         let newAdType = 'buy';
+        let selectedBankValue = 'ALL';
         let userStatus = { is_verified: false, has_wallet: false, has_phone: false };
         let activeAd = null;
         let activeDealId = null;
@@ -664,11 +749,6 @@
             'Content-Type': 'application/json',
             'ngrok-skip-browser-warning': 'true'
         };
-
-        function log(msg) {
-            const c = document.getElementById('debug-console');
-            if (c) c.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + c.innerHTML;
-        }
 
         document.getElementById('prof-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
         if (user.first_name) document.getElementById('prof-avatar').innerText = user.first_name[0];
@@ -689,7 +769,7 @@
                     });
                     await checkUserStatus();
                 } catch (e) {
-                    log(`Ошибка сети (connect-wallet): ${e.message}`);
+                    console.error("connect-wallet error:", e);
                 }
             }
         });
@@ -722,19 +802,52 @@
             else btn.innerText = "Все подтверждено!";
         }
 
+        /* Выпадающие списки для фильтров */
+        function toggleDropdown(id) {
+            const el = document.getElementById(id);
+            const isShown = el.classList.contains('show');
+            document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('show'));
+            if (!isShown) el.classList.add('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.custom-select-wrapper')) {
+                document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
+
+        function selectCrypto(val) {
+            document.getElementById('selected-crypto').innerText = `Крипта: ${val}`;
+            document.getElementById('crypto-dropdown').classList.remove('show');
+            applyFilters();
+        }
+
+        function selectBank(val, label) {
+            selectedBankValue = val;
+            document.getElementById('selected-bank').innerText = label;
+            document.getElementById('bank-dropdown').classList.remove('show');
+            applyFilters();
+        }
+
         function switchNav(target, el) {
             document.querySelectorAll('.view-screen').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(i => {
                 i.classList.remove('active');
                 const svgPath = i.querySelector('svg path');
-                if(svgPath) svgPath.style.fill = 'var(--tg-hint)';
+                if(svgPath) {
+                    svgPath.style.stroke = 'var(--tg-hint)';
+                    svgPath.style.fill = 'none';
+                }
             });
             
             document.getElementById(`view-${target}`).classList.add('active');
             el.classList.add('active');
 
             const activeSvgPath = el.querySelector('svg path');
-            if(activeSvgPath) activeSvgPath.style.fill = 'var(--icon-color)';
+            if(activeSvgPath) {
+                activeSvgPath.style.stroke = 'var(--icon-color)';
+                activeSvgPath.style.fill = 'none';
+            }
 
             if (target === 'orders') loadUserOrders();
         }
@@ -808,13 +921,15 @@
                     }
                     list.innerHTML = data.deals.map(d => `
                         <div class="card">
-                            <div class="card-header">
-                                <span style="font-weight:700;">Сделка #${d.id}</span>
+                            <div class="card-top-row">
+                                <div class="card-price-block">
+                                    <span class="card-price">${d.amount_fiat} RUB</span>
+                                </div>
                                 <span class="status-pill ${d.status === 'completed' ? 'pill-ok' : 'pill-need'}">${d.status}</span>
                             </div>
-                            <div class="price-row">
-                                <span class="price">${d.amount_fiat} RUB</span>
-                                <span>${d.amount_crypto} USDT</span>
+                            <div class="card-details-grid">
+                                <span class="card-detail-label">Получаете</span>
+                                <span class="card-detail-val">${d.amount_crypto} USDT</span>
                             </div>
                         </div>
                     `).join('');
@@ -956,10 +1071,11 @@
                 allMarketAds = data.ads || [];
                 renderMarketList(allMarketAds, side);
             } catch (e) {
-                log(`Ошибка сети (/market): ${e.message}`);
+                console.error("loadMarket error:", e);
             }
         }
 
+        /* Отрисовка карточек точно в стиле Фото 1 */
         function renderMarketList(ads, side) {
             const list = document.getElementById('market-list');
             
@@ -972,36 +1088,41 @@
 
             list.innerHTML = ads.map((ad, idx) => `
                 <div class="card">
-                    <div class="card-header">
-                        <div class="user-info">
-                            <span>Maker_${ad.owner}</span>
-                            <span class="stats-info">★ ${ad.rating}% (${ad.deals_count})</span>
+                    <div class="card-top-row">
+                        <div class="card-price-block">
+                            <span class="card-price">${ad.price} RUB</span>
+                            <span class="card-price-sub">Цена за 1 USDT</span>
                         </div>
-                        <span class="bank-badge">${ad.bank}</span>
-                    </div>
-                    
-                    <div class="price-row">
-                        <span class="price">${ad.price} RUB</span>
+                        <button class="btn-action-sm ${side === 'sell' ? 'btn-buy-sm' : 'btn-sell-sm'}" onclick="handleDealClick(window.marketAds[${idx}])">
+                            ${side === 'sell' ? 'КУПИТЬ' : 'ПРОДАТЬ'}
+                        </button>
                     </div>
 
-                    <div class="limit-row">
-                        <span>Доступно: <b>${ad.amount} USDT</b></span>
-                        <span>Лимиты: 100 ~ ${(ad.amount * ad.price).toFixed(0)} RUB</span>
+                    <div class="card-user-row">
+                        <span style="font-size: 14px;">🟢</span>
+                        <span class="card-user-name">Maker_${ad.owner}</span>
+                        <span class="card-user-stats">сделок: ${ad.deals_count} • ${ad.rating}%</span>
                     </div>
 
-                    <button class="btn-action ${side === 'sell' ? 'btn-buy' : 'btn-sell'}" onclick="handleDealClick(window.marketAds[${idx}])">
-                        ${side === 'sell' ? 'Купить USDT' : 'Продать USDT'}
-                    </button>
+                    <div class="card-details-grid">
+                        <span class="card-detail-label">Доступно</span>
+                        <span class="card-detail-val">${ad.amount} USDT</span>
+
+                        <span class="card-detail-label">Лимиты</span>
+                        <span class="card-detail-val">100 — ${(ad.amount * ad.price).toFixed(2)} RUB</span>
+
+                        <span class="card-detail-label">Методы оплаты</span>
+                        <span class="card-detail-val">${ad.bank}</span>
+                    </div>
                 </div>
             `).join('');
         }
 
         function applyFilters() {
             const amountVal = parseFloat(document.getElementById('filter-amount').value) || 0;
-            const bankVal = document.getElementById('filter-bank').value;
 
             const filtered = allMarketAds.filter(ad => {
-                const matchesBank = bankVal === 'ALL' || ad.bank === bankVal;
+                const matchesBank = selectedBankValue === 'ALL' || ad.bank === selectedBankValue;
                 const maxFiat = ad.amount * ad.price;
                 const matchesAmount = amountVal === 0 || maxFiat >= amountVal;
                 return matchesBank && matchesAmount;
