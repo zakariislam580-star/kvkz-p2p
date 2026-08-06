@@ -55,6 +55,32 @@
             overflow-x: hidden;
         }
 
+        /* Кастомное всплывающее уведомление (Toast) */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--brand-accent);
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            z-index: 2000;
+            opacity: 0;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
         /* Шапка */
         .header { 
             background: var(--card-bg); 
@@ -99,7 +125,7 @@
         .selector-btn.active-sell { background: var(--btn-sell-color); color: #fff; }
         .selector-btn.active-tab { background: var(--brand-accent); color: #fff; }
 
-        /* Гармоничные Фильтры с плавной анимацией */
+        /* Фильтры */
         .filter-bar {
             display: flex;
             gap: 8px;
@@ -153,8 +179,6 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             z-index: 999;
             overflow: hidden;
-            
-            /* Плавное открытие выпадающего списка */
             opacity: 0;
             visibility: hidden;
             transform: scaleY(0.85) translateY(-10px);
@@ -397,7 +421,7 @@
         }
         .create-ad-btn:active { transform: scale(0.98); }
 
-        /* ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА И ШТОРЫ (SMOOTH BOTTOM SHEETS) */
+        /* ШТОРЫ МОДАЛЬНЫХ ОКНА */
         .blur-overlay { 
             position: fixed; 
             top: 0; left: 0; right: 0; bottom: 0; 
@@ -408,8 +432,6 @@
             display: flex; 
             align-items: flex-end; 
             justify-content: center;
-            
-            /* Плавное проявление фонового размытия */
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), 
@@ -433,8 +455,6 @@
             overflow-y: auto; 
             color: var(--text-color);
             border-top: 0.5px solid var(--border-color);
-            
-            /* Плавное выдвижение снизу вверх */
             transform: translateY(100%);
             transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
             will-change: transform;
@@ -490,6 +510,12 @@
 </head>
 <body>
 
+    <!-- ВСПЛЫВАЮЩЕЕ ТОАСТ-УВЕДОМЛЕНИЕ -->
+    <div id="toast-notif" class="toast-notification">
+        <span id="toast-icon">✅</span>
+        <span id="toast-text">Объявление успешно создано</span>
+    </div>
+
     <!-- ВКЛАДКА 1: P2P -->
     <div id="view-market" class="view-screen active">
         <div class="header">
@@ -504,7 +530,7 @@
             </div>
         </div>
 
-        <!-- ГАРМОНИЧНЫЕ ФИЛЬТРЫ -->
+        <!-- ФИЛЬТРЫ -->
         <div class="filter-bar">
             <!-- Дропдаун Крипта -->
             <div class="custom-select-wrapper">
@@ -518,10 +544,10 @@
                 </div>
             </div>
 
-            <!-- Инпут Суммы -->
+            <!-- Инпут Суммы (ТОЛЬКО ЦИФРЫ) -->
             <div class="custom-select-wrapper" style="flex:1.2;">
                 <div class="filter-box">
-                    <input type="number" id="filter-amount" placeholder="Сумма RUB" oninput="applyFilters()">
+                    <input type="text" inputmode="decimal" class="numeric-only" id="filter-amount" placeholder="Сумма RUB" oninput="applyFilters()">
                 </div>
             </div>
 
@@ -580,7 +606,7 @@
             </div>
 
             <div class="menu-list">
-                <div class="menu-item" onclick="alert('Раздел в разработке')">
+                <div class="menu-item" onclick="showToast('⚙️ Раздел в разработке')">
                     <div class="menu-left">
                         <div class="menu-icon">
                             <svg viewBox="0 0 24 24" width="22" height="22"><path fill="var(--icon-color)" d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
@@ -606,10 +632,13 @@
 
             <div class="trade-header" style="border-radius: 12px; margin-bottom: 10px;">
                 <div class="selector-group" style="width: 100%;">
-                    <button class="selector-btn active-tab" style="flex:1;">Покупка</button>
-                    <button class="selector-btn" style="flex:1;">Продажа</button>
+                    <button id="prof-ad-tab-buy" class="selector-btn active-tab" style="flex:1;" onclick="switchProfileAdsTab('buy')">Покупка</button>
+                    <button id="prof-ad-tab-sell" class="selector-btn" style="flex:1;" onclick="switchProfileAdsTab('sell')">Продажа</button>
                 </div>
             </div>
+
+            <!-- Список личных объявлений пользователя -->
+            <div id="my-ads-list"></div>
 
             <button class="create-ad-btn" onclick="openCreateAdModal()">
                 <span style="font-size: 18px;">⊕</span> Создать объявление
@@ -619,7 +648,6 @@
 
     <!-- НИЖНЯЯ НАВИГАЦИЯ -->
     <div class="bottom-nav">
-        <!-- P2P Иконка -->
         <div class="nav-item active" onclick="switchNav('market', this)">
             <div class="nav-icon">
                 <svg viewBox="0 0 24 24" width="24" height="24"><path stroke="var(--icon-color)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" d="M6 9h12l1 11H5L6 9z M9 9V6a3 3 0 0 1 6 0v3"/></svg>
@@ -627,7 +655,6 @@
             <span>P2P</span>
         </div>
         
-        <!-- Сделки Иконка -->
         <div class="nav-item" onclick="switchNav('orders', this)">
             <div class="nav-icon">
                 <svg viewBox="0 0 24 24" width="24" height="24"><path stroke="var(--tg-hint)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5h6m-6 9h6m-6 4h4"/></svg>
@@ -635,7 +662,6 @@
             <span>Сделки</span>
         </div>
 
-        <!-- Профиль Иконка -->
         <div class="nav-item" onclick="switchNav('profile', this)">
             <div class="nav-icon">
                 <svg viewBox="0 0 24 24" width="24" height="24"><path stroke="var(--tg-hint)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z"/></svg>
@@ -660,12 +686,12 @@
 
             <div class="form-group">
                 <label class="form-label">Курс обмена (RUB за 1 USDT)</label>
-                <input type="number" id="new-ad-price" class="form-input" placeholder="Например: 95.50">
+                <input type="text" inputmode="decimal" id="new-ad-price" class="form-input numeric-only" placeholder="Например: 95.50">
             </div>
 
             <div class="form-group">
                 <label class="form-label">Доступный объем (USDT)</label>
-                <input type="number" id="new-ad-amount" class="form-input" placeholder="Например: 500">
+                <input type="text" inputmode="decimal" id="new-ad-amount" class="form-input numeric-only" placeholder="Например: 500">
             </div>
 
             <div class="form-group">
@@ -735,7 +761,7 @@
 
                 <div class="wallet-amount-box">
                     <div class="wallet-input-row">
-                        <input type="number" id="deal-fiat-input" class="wallet-input" value="500" oninput="calculateCrypto()">
+                        <input type="text" inputmode="decimal" id="deal-fiat-input" class="wallet-input numeric-only" value="500" oninput="calculateCrypto()">
                         <span class="wallet-currency">RUB</span>
                     </div>
                     <div id="deal-crypto-subtext" class="wallet-subtext">0.00 USDT</div>
@@ -797,6 +823,7 @@
 
         let currentSide = 'sell';
         let newAdType = 'buy';
+        let profileAdSide = 'buy';
         let selectedBankValue = 'ALL';
         let userStatus = { is_verified: false, has_wallet: false, has_phone: false };
         let activeAd = null;
@@ -811,6 +838,34 @@
                 'Authorization': tg.initData || ''
             };
         }
+
+        // Кастомный всплывающий Toast вместо системного alert
+        function showToast(message, icon = '✅') {
+            const toast = document.getElementById('toast-notif');
+            document.getElementById('toast-icon').innerText = icon;
+            document.getElementById('toast-text').innerText = message;
+            
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Блокировка ввода любых символов, кроме цифр и одной точки
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('numeric-only')) {
+                let val = e.target.value.replace(',', '.'); // Замена запятых
+                val = val.replace(/[^0-9.]/g, ''); // Удаление всех символов кроме цифр и точки
+                
+                // Ограничиваем количество точек одной
+                const parts = val.split('.');
+                if (parts.length > 2) {
+                    val = parts[0] + '.' + parts.slice(1).join('');
+                }
+                
+                e.target.value = val;
+            }
+        });
 
         document.getElementById('prof-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
         if (user.first_name) document.getElementById('prof-avatar').innerText = user.first_name[0];
@@ -866,7 +921,7 @@
             else btn.innerText = "Все подтверждено!";
         }
 
-        /* Выпадающие списки фильтров (Плавные) */
+        /* Выпадающие списки */
         function toggleDropdown(id) {
             const el = document.getElementById(id);
             const isShown = el.classList.contains('show');
@@ -914,6 +969,7 @@
             }
 
             if (target === 'orders') loadUserOrders();
+            if (target === 'profile') renderMyAds();
         }
 
         function switchOrderTab(tab) {
@@ -922,22 +978,19 @@
             loadUserOrders(tab);
         }
 
-        /* Функции управления плавными модалками */
-        function openModal(id) {
-            document.getElementById(id).classList.add('active');
+        function switchProfileAdsTab(side) {
+            profileAdSide = side;
+            document.getElementById('prof-ad-tab-buy').className = `selector-btn ${side === 'buy' ? 'active-tab' : ''}`;
+            document.getElementById('prof-ad-tab-sell').className = `selector-btn ${side === 'sell' ? 'active-tab' : ''}`;
+            renderMyAds();
         }
 
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
+        /* Управление модальными окнами */
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-        function openCreateAdModal() {
-            openModal('create-ad-modal');
-        }
-
-        function closeCreateAdModal() {
-            closeModal('create-ad-modal');
-        }
+        function openCreateAdModal() { openModal('create-ad-modal'); }
+        function closeCreateAdModal() { closeModal('create-ad-modal'); }
 
         function setAdType(type) {
             newAdType = type;
@@ -952,7 +1005,7 @@
             const description = document.getElementById('new-ad-desc').value.trim();
 
             if (!price || !amount) {
-                alert("Пожалуйста, заполните цену и количество.");
+                showToast("Заполните цену и количество", "⚠️");
                 return;
             }
 
@@ -970,19 +1023,44 @@
                 });
 
                 if (res.ok) {
-                    alert("Объявление успешно создано!");
+                    showToast("Объявление создано!");
                     document.getElementById('new-ad-price').value = '';
                     document.getElementById('new-ad-amount').value = '';
                     document.getElementById('new-ad-desc').value = '';
                     closeCreateAdModal();
-                    loadMarket(currentSide);
+                    
+                    // Обновляем маркет и профиль
+                    await loadMarket(currentSide);
+                    renderMyAds();
                 } else {
                     const err = await res.json();
-                    alert(`Ошибка: ${err.detail || 'Не удалось создать объявление'}`);
+                    showToast(err.detail || 'Ошибка создания', "❌");
                 }
             } catch(e) {
-                alert(`Ошибка сети: ${e.message}`);
+                showToast("Ошибка сети", "❌");
             }
+        }
+
+        function renderMyAds() {
+            const container = document.getElementById('my-ads-list');
+            const myAds = allMarketAds.filter(ad => String(ad.owner) === String(user.id) && ad.type === profileAdSide);
+
+            if (myAds.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:var(--tg-hint); font-size:12px; margin: 12px 0;">У вас нет объявлений этого типа</div>`;
+                return;
+            }
+
+            container.innerHTML = myAds.map(ad => `
+                <div class="card" style="margin: 6px 0;">
+                    <div class="card-top-row">
+                        <div class="card-price-block">
+                            <span class="card-price" style="font-size:18px;">${ad.price} RUB</span>
+                            <span class="card-price-sub">${ad.amount} USDT • ${ad.bank}</span>
+                        </div>
+                        <span class="status-pill pill-ok">Активно</span>
+                    </div>
+                </div>
+            `).join('');
         }
 
         async function loadUserOrders(type = 'active') {
@@ -1036,9 +1114,7 @@
             openModal('deal-modal');
         }
 
-        function closeDealModal() {
-            closeModal('deal-modal');
-        }
+        function closeDealModal() { closeModal('deal-modal'); }
 
         function calculateCrypto() {
             if (!activeAd) return;
@@ -1060,7 +1136,7 @@
             const cryptoVal = fiatVal / activeAd.price;
 
             if (!fiatVal || fiatVal <= 0) {
-                alert("Введите корректную сумму");
+                showToast("Введите корректную сумму", "⚠️");
                 return;
             }
 
@@ -1087,20 +1163,20 @@
                     document.getElementById('active-deal-bank').innerText = activeAd.bank;
                 } else {
                     const errData = await response.json();
-                    alert(`Ошибка: ${errData.detail || 'Ошибка базы данных'}`);
+                    showToast(errData.detail || 'Ошибка базы данных', "❌");
                 }
             } catch (e) {
-                alert(`Ошибка сети: ${e.message}`);
+                showToast("Ошибка сети", "❌");
             }
         }
 
         function markAsPaid() {
-            alert("Статус отправлен продавцу!");
+            showToast("Статус отправлен продавцу!");
             closeDealModal();
         }
 
         function cancelDeal() {
-            alert("Сделка отменена.");
+            showToast("Сделка отменена", "ℹ️");
             closeDealModal();
         }
 
@@ -1118,9 +1194,7 @@
             openModal('auth-blur-modal');
         }
 
-        function closeAuthModal() {
-            closeModal('auth-blur-modal');
-        }
+        function closeAuthModal() { closeModal('auth-blur-modal'); }
 
         async function runNextVerificationStep() {
             if (!userStatus.has_wallet) {
@@ -1136,7 +1210,7 @@
                         setTimeout(() => tg.close(), 300);
                     }
                 } catch (e) {
-                    alert(`Ошибка сети: ${e.message}`);
+                    showToast("Ошибка сети", "❌");
                 }
             }
         }
@@ -1150,6 +1224,7 @@
                 const data = await res.json();
                 allMarketAds = data.ads || [];
                 renderMarketList(allMarketAds, side);
+                renderMyAds();
             } catch (e) {
                 console.error("loadMarket error:", e);
             }
