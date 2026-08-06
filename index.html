@@ -803,10 +803,14 @@
         let activeDealId = null;
         let allMarketAds = [];
 
-        const fetchHeaders = {
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true'
-        };
+        // Функция формирования авторизационных заголовков с валидацией Telegram
+        function getAuthHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true',
+                'Authorization': tg.initData || ''
+            };
+        }
 
         document.getElementById('prof-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
         if (user.first_name) document.getElementById('prof-avatar').innerText = user.first_name[0];
@@ -822,8 +826,8 @@
                 try {
                     await fetch(`${API}/api/user/connect-wallet`, {
                         method: 'POST',
-                        headers: fetchHeaders,
-                        body: JSON.stringify({ user_id: String(user.id), ton_wallet: String(walletAddress) })
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ ton_wallet: String(walletAddress) })
                     });
                     await checkUserStatus();
                 } catch (e) {
@@ -834,7 +838,9 @@
 
         async function checkUserStatus() {
             try {
-                const response = await fetch(`${API}/api/user/status/${user.id}`, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+                const response = await fetch(`${API}/api/user/status/${user.id}`, { 
+                    headers: { 'ngrok-skip-browser-warning': 'true' } 
+                });
                 if (!response.ok) return userStatus;
                 userStatus = await response.json();
                 updateModalView();
@@ -953,9 +959,8 @@
             try {
                 const res = await fetch(`${API}/api/ads/create`, {
                     method: 'POST',
-                    headers: fetchHeaders,
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({
-                        owner_id: String(user.id),
                         type: newAdType,
                         price: price,
                         amount: amount,
@@ -984,7 +989,9 @@
             const list = document.getElementById('orders-list');
             list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Загрузка...</div>`;
             try {
-                const res = await fetch(`${API}/api/deals/my/${user.id}`, { headers: fetchHeaders });
+                const res = await fetch(`${API}/api/deals/my/${user.id}`, { 
+                    headers: { 'ngrok-skip-browser-warning': 'true' } 
+                });
                 if (res.ok) {
                     const data = await res.json();
                     if (!data.deals || data.deals.length === 0) {
@@ -1060,10 +1067,9 @@
             try {
                 const response = await fetch(`${API}/api/deals/create`, {
                     method: 'POST',
-                    headers: fetchHeaders,
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({
                         ad_id: activeAd.id,
-                        buyer_id: String(user.id),
                         amount_crypto: parseFloat(cryptoVal.toFixed(4))
                     })
                 });
@@ -1123,8 +1129,8 @@
                 try {
                     const response = await fetch(`${API}/api/user/request-phone`, {
                         method: 'POST',
-                        headers: fetchHeaders,
-                        body: JSON.stringify({ user_id: String(user.id) })
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({})
                     });
                     if (response.ok) {
                         setTimeout(() => tg.close(), 300);
@@ -1137,7 +1143,9 @@
 
         async function loadMarket(side = 'sell') {
             try {
-                const res = await fetch(`${API}/api/market?type=${side}`, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+                const res = await fetch(`${API}/api/market?type=${side}`, { 
+                    headers: { 'ngrok-skip-browser-warning': 'true' } 
+                });
                 if (!res.ok) return;
                 const data = await res.json();
                 allMarketAds = data.ads || [];
