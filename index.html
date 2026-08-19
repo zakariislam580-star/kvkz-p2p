@@ -20,6 +20,10 @@
 
             --btn-buy-color: #34C759;
             --btn-sell-color: #FF3B30;
+            --success-color: #22c55e;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --accent-color: #3b82f6;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -538,6 +542,120 @@
         .btn-wallet-submit:active { transform: scale(0.97); }
         .btn-wallet-cancel { width: 100%; padding: 12px; border-radius: 12px; background: transparent; color: var(--btn-sell-color); font-size: 14px; font-weight: 600; border: none; cursor: pointer; margin-top: 4px; }
 
+        /* Новые стили для экрана детальной информации по сделке */
+        .deal-container-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .deal-header-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg-sub);
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 0.5px solid var(--border-color);
+        }
+
+        .deal-id-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .deal-title-sub {
+            font-size: 12px;
+            color: var(--tg-hint);
+        }
+
+        .deal-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            width: fit-content;
+        }
+
+        .status-created { background: rgba(59, 130, 246, 0.15); color: var(--accent-color); }
+        .status-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning-color); }
+        .status-info { background: rgba(59, 130, 246, 0.15); color: var(--accent-color); }
+        .status-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger-color); }
+        .status-success { background: rgba(34, 197, 94, 0.15); color: var(--success-color); }
+        .status-muted { background: rgba(148, 163, 184, 0.15); color: var(--tg-hint); }
+
+        .timer-card {
+            text-align: right;
+        }
+
+        .timer-label {
+            display: block;
+            font-size: 10px;
+            color: var(--tg-hint);
+        }
+
+        .timer-value {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--warning-color);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .section-heading {
+            font-size: 12px;
+            color: var(--tg-hint);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .requisite-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg-sub);
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 0.5px solid var(--border-color);
+            margin-bottom: 8px;
+        }
+        .requisite-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .requisite-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .value-mono {
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-color);
+        }
+
+        .copy-btn {
+            background: var(--border-color);
+            color: var(--text-color);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:active {
+            background: var(--brand-accent);
+            color: #fff;
+        }
+
         .hidden { display: none !important; }
     </style>
 </head>
@@ -910,29 +1028,69 @@
             </div>
 
             <div id="deal-step-active" class="hidden">
-                <div style="text-align: center; margin-bottom: 12px;">
-                    <div style="font-size: 13px; color: var(--tg-hint); font-weight: 600;">Сделка <span id="active-deal-id">#0</span></div>
-                    <div style="font-size: 24px; font-weight: 800; color: var(--text-color); margin-top: 4px;" id="active-deal-timer">15:00</div>
-                    <div style="font-size: 12px; color: var(--tg-hint);">Оплатите ордер в течение отведенного времени</div>
-                </div>
+                <!-- Новый экран детальной информации по сделке с таймером, статусами и реквизитами -->
+                <div class="deal-container-inner">
+                    <!-- Шапка со статусом и таймером -->
+                    <div class="deal-header-card">
+                        <div class="deal-id-block">
+                            <span class="deal-title-sub">Сделка <span id="active-deal-id">#0</span></span>
+                            <span id="deal-status-badge" class="deal-badge status-warning">Ожидает оплаты</span>
+                        </div>
 
-                <div class="wallet-details-card">
-                    <div class="wallet-detail-item">
-                        <span class="wallet-detail-label">Сумма к оплате</span>
-                        <span id="active-deal-fiat" class="wallet-detail-value" style="color: var(--btn-buy-color); font-size: 16px;">0 RUB</span>
+                        <div id="timer-container" class="timer-card">
+                            <span class="timer-label">Оплатить в течение:</span>
+                            <span id="active-deal-timer" class="timer-value">15:00</span>
+                        </div>
                     </div>
-                    <div class="wallet-detail-item">
-                        <span class="wallet-detail-label">Вы получаете</span>
-                        <span id="active-deal-crypto" class="wallet-detail-value">0 USDT</span>
+
+                    <!-- Основная информация о сделке -->
+                    <div class="wallet-details-card" style="margin:0;">
+                        <div class="wallet-detail-item">
+                            <span class="wallet-detail-label">Сумма к получению</span>
+                            <span id="active-deal-fiat" class="wallet-detail-value" style="color: var(--btn-buy-color); font-size: 15px;">0 RUB</span>
+                        </div>
+                        <div class="wallet-detail-item">
+                            <span class="wallet-detail-label">Криптовалюта</span>
+                            <span id="active-deal-crypto" class="wallet-detail-value">0 USDT</span>
+                        </div>
+                        <div class="wallet-detail-item">
+                            <span class="wallet-detail-label">Банк / Метод</span>
+                            <span id="active-deal-bank" class="wallet-detail-value">Сбербанк</span>
+                        </div>
                     </div>
-                    <div class="wallet-detail-item">
-                        <span class="wallet-detail-label">Банк</span>
-                        <span id="active-deal-bank" class="wallet-detail-value">Сбербанк</span>
+
+                    <!-- Блок реквизитов с кнопками быстрого копирования -->
+                    <div class="wallet-details-card" style="margin:0;">
+                        <div class="section-heading">Реквизиты для перевода</div>
+                        
+                        <div class="requisite-item">
+                            <div class="requisite-info">
+                                <span class="deal-title-sub">Номер счета / карты</span>
+                                <span id="deal-card-number" class="value-mono">4276 3800 1234 5678</span>
+                            </div>
+                            <button class="copy-btn" onclick="handleCopyDealData(document.getElementById('deal-card-number').innerText, 'card')">
+                                Копировать
+                            </button>
+                        </div>
+
+                        <div class="requisite-item" style="margin-top: 8px;">
+                            <div class="requisite-info">
+                                <span class="deal-title-sub">Получатель</span>
+                                <span id="deal-card-holder" class="wallet-detail-value">Иван И.</span>
+                            </div>
+                            <button class="copy-btn" onclick="handleCopyDealData(document.getElementById('deal-card-holder').innerText, 'holder')">
+                                Копировать
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Действия пользователя со статусами -->
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+                        <button id="deal-action-primary-btn" class="btn-wallet-submit" style="background: var(--btn-buy-color);" onclick="markAsPaid()">Я перевел средства</button>
+                        <div id="deal-status-notice" class="hidden" style="text-align: center; font-size: 13px; color: var(--tg-hint); padding: 6px;">Ожидаем подтверждения от продавца</div>
+                        <button class="btn-wallet-cancel" style="color: var(--danger-color);" onclick="openDispute()">Открыть спор (Арбитраж)</button>
                     </div>
                 </div>
-
-                <button class="btn-wallet-submit" style="background: var(--btn-buy-color);" onclick="markAsPaid()">Я ОПЛАТИЛ</button>
-                <button class="btn-wallet-cancel" onclick="cancelDeal()">Отменить сделку</button>
             </div>
 
         </div>
@@ -955,6 +1113,10 @@
         let activeAd = null;
         let activeDealId = null;
         let allMarketAds = [];
+        
+        // Логика таймера для экрана сделки
+        let dealTimerInterval = null;
+        let dealTimeLeft = 900; // 15 минут по умолчанию
 
         // Векторные Иконки для Тоастов
         const SVG_ICONS = {
@@ -981,6 +1143,12 @@
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
+        }
+
+        // Быстрое копирование реквизитов для экрана сделки
+        function handleCopyDealData(text, fieldKey) {
+            navigator.clipboard.writeText(text);
+            showToast("Скопировано в буфер обмена", "success");
         }
 
         document.addEventListener('input', function(e) {
@@ -1379,7 +1547,10 @@
             openModal('deal-modal');
         }
 
-        function closeDealModal() { closeModal('deal-modal'); }
+        function closeDealModal() { 
+            if (dealTimerInterval) clearInterval(dealTimerInterval);
+            closeModal('deal-modal'); 
+        }
 
         function calculateCrypto() {
             if (!activeAd) return;
@@ -1393,6 +1564,28 @@
             const maxFiat = (activeAd.amount * activeAd.price).toFixed(2);
             document.getElementById('deal-fiat-input').value = maxFiat;
             calculateCrypto();
+        }
+
+        // Запуск таймера обратного отчета сделки (MM:SS)
+        function startDealTimer(durationInSeconds) {
+            if (dealTimerInterval) clearInterval(dealTimerInterval);
+            dealTimeLeft = durationInSeconds;
+            
+            const timerEl = document.getElementById('active-deal-timer');
+            const timerContainer = document.getElementById('timer-container');
+            timerContainer.style.display = 'block';
+
+            dealTimerInterval = setInterval(() => {
+                if (dealTimeLeft <= 0) {
+                    clearInterval(dealTimerInterval);
+                    timerEl.innerText = "00:00";
+                    return;
+                }
+                dealTimeLeft--;
+                const mins = Math.floor(dealTimeLeft / 60);
+                const secs = dealTimeLeft % 60;
+                timerEl.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
         }
 
         async function submitDeal() {
@@ -1426,6 +1619,19 @@
                     document.getElementById('active-deal-fiat').innerText = `${fiatVal.toFixed(2)} RUB`;
                     document.getElementById('active-deal-crypto').innerText = `${cryptoVal.toFixed(4)} USDT`;
                     document.getElementById('active-deal-bank').innerText = activeAd.bank;
+                    
+                    // Устанавливаем статусы и реквизиты
+                    const badge = document.getElementById('deal-status-badge');
+                    badge.className = 'deal-badge status-warning';
+                    badge.innerText = 'Ожидает оплаты';
+                    
+                    document.getElementById('deal-action-primary-btn').innerText = 'Я перевел средства';
+                    document.getElementById('deal-action-primary-btn').style.background = 'var(--btn-buy-color)';
+                    document.getElementById('deal-action-primary-btn').onclick = markAsPaid;
+                    document.getElementById('deal-status-notice').classList.add('hidden');
+
+                    // Запускаем таймер на 15 минут (900 секунд)
+                    startDealTimer(900);
                 } else {
                     const errData = await response.json();
                     showToast(errData.detail || 'Ошибка базы данных', "error");
@@ -1436,11 +1642,29 @@
         }
 
         function markAsPaid() {
+            if (dealTimerInterval) clearInterval(dealTimerInterval);
+            document.getElementById('timer-container').style.display = 'none';
+
+            const badge = document.getElementById('deal-status-badge');
+            badge.className = 'deal-badge status-info';
+            badge.innerText = 'Оплачена';
+
+            document.getElementById('deal-action-primary-btn').style.display = 'none';
+            document.getElementById('deal-status-notice').classList.remove('hidden');
+
             showToast("Статус отправлен продавцу!", "success");
-            closeDealModal();
+        }
+
+        function openDispute() {
+            const badge = document.getElementById('deal-status-badge');
+            badge.className = 'deal-badge status-danger';
+            badge.innerText = 'Оспаривается';
+
+            showToast("Спор открыт. Подключение арбитра...", "warning");
         }
 
         function cancelDeal() {
+            if (dealTimerInterval) clearInterval(dealTimerInterval);
             showToast("Сделка отменена", "info");
             closeDealModal();
         }
