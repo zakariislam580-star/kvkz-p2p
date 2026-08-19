@@ -535,34 +535,58 @@
         .form-input { width: 100%; background: var(--card-bg-sub); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; color: var(--text-color); font-size: 14px; outline: none; font-family: inherit; }
         textarea.form-input { resize: vertical; min-height: 70px; }
 
-        .btn-wallet-submit { width: 100%; padding: 14px; border-radius: 12px; background: var(--brand-accent); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; transition: transform 0.15s ease; }
+        /* Выбор банка (способы оплаты) */
+        .bank-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .bank-chip {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 10px; border-radius: 12px;
+            border: 1.5px solid var(--border-color);
+            background: var(--card-bg-sub);
+            cursor: pointer;
+            transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+        }
+        .bank-chip:active { transform: scale(0.96); }
+        .bank-chip.selected { border-color: var(--brand-accent); background: var(--card-bg); box-shadow: 0 0 0 1px var(--brand-accent) inset; }
+        .bank-chip-dot {
+            width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 11px; font-weight: 800; letter-spacing: -0.5px;
+        }
+        .bank-chip-name { font-size: 12.5px; font-weight: 600; line-height: 1.2; }
 
-        /* --- Способы оплаты: выбор банка / СБП --- */
-        .pm-fade-section { animation: pmFadeIn 0.25s cubic-bezier(0.25, 1, 0.5, 1); }
-        @keyframes pmFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        .bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .bank-chip-btn {
-            padding: 12px 10px; border-radius: 12px; background: var(--card-bg-sub);
-            border: 1.5px solid transparent; color: var(--text-color); font-size: 13px; font-weight: 600;
-            text-align: center; cursor: pointer; transition: all 0.15s ease; user-select: none;
-        }
-        .bank-chip-btn.picked { border-color: var(--brand-accent); background: color-mix(in srgb, var(--brand-accent) 14%, var(--card-bg-sub)); color: var(--brand-accent); }
-        .sbp-bank-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: 220px; overflow-y: auto; padding: 2px 2px 4px 2px; }
+        .sbp-bank-list { display: flex; flex-wrap: wrap; gap: 8px; }
         .sbp-bank-chip {
-            padding: 9px 12px; border-radius: 20px; background: var(--card-bg-sub);
-            border: 1.5px solid transparent; color: var(--text-color); font-size: 13px; font-weight: 500;
-            cursor: pointer; transition: all 0.15s ease; user-select: none; display: flex; align-items: center; gap: 6px;
+            padding: 8px 12px; border-radius: 20px;
+            border: 1.5px solid var(--border-color);
+            background: var(--card-bg-sub);
+            font-size: 12.5px; font-weight: 600;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
         }
-        .sbp-bank-chip.picked { border-color: var(--brand-accent); background: color-mix(in srgb, var(--brand-accent) 16%, var(--card-bg-sub)); color: var(--brand-accent); font-weight: 700; }
-        .sbp-bank-chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tg-hint); transition: background 0.15s ease; }
-        .sbp-bank-chip.picked .chip-dot { background: var(--brand-accent); }
-        .pm-subtype-toggle { display: flex; gap: 8px; margin-bottom: 4px; }
-        .pm-subtype-btn {
-            flex: 1; padding: 9px; border-radius: 10px; background: var(--card-bg-sub); border: 1.5px solid transparent;
-            color: var(--tg-hint); font-size: 13px; font-weight: 600; text-align: center; cursor: pointer; transition: all 0.15s ease;
+        .sbp-bank-chip:active { transform: scale(0.95); }
+        .sbp-bank-chip.selected { border-color: var(--brand-accent); background: var(--brand-accent); color: #fff; }
+
+        .pm-fields-wrap { position: relative; min-height: 40px; }
+        .pm-fields { transition: opacity 0.2s ease, transform 0.2s ease; opacity: 1; transform: translateY(0); }
+        .pm-fields.pm-fade { opacity: 0; transform: translateY(4px); }
+
+        .btn-neutral-sm { background: var(--card-bg-sub); color: var(--text-color); border: 1px solid var(--border-color); }
+
+        .select-methods-list { display: flex; flex-direction: column; gap: 8px; }
+        .select-method-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px; border-radius: 12px;
+            border: 1.5px solid var(--border-color);
+            background: var(--card-bg-sub);
+            cursor: pointer;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
         }
-        .pm-subtype-btn.active-tab { border-color: var(--brand-accent); color: var(--brand-accent); background: color-mix(in srgb, var(--brand-accent) 12%, var(--card-bg-sub)); }
-        .pm-hint { font-size: 11px; color: var(--tg-hint); margin-top: 6px; line-height: 1.4; }
+        .select-method-row.selected { border-color: var(--brand-accent); background: var(--card-bg); }
+        .select-method-info { display: flex; flex-direction: column; }
+        .select-method-name { font-size: 14px; font-weight: 700; }
+        .select-method-sub { font-size: 12px; color: var(--tg-hint); }
+
+        .btn-wallet-submit { width: 100%; padding: 14px; border-radius: 12px; background: var(--brand-accent); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; transition: transform 0.15s ease; }
         .btn-wallet-submit:active { transform: scale(0.97); }
         .btn-wallet-cancel { width: 100%; padding: 12px; border-radius: 12px; background: transparent; color: var(--btn-sell-color); font-size: 14px; font-weight: 600; border: none; cursor: pointer; margin-top: 4px; }
 
@@ -690,48 +714,44 @@
     <div id="payment-method-modal" class="blur-overlay" onclick="if(event.target.id==='payment-method-modal') closePaymentMethodModal()">
         <div class="modal-sheet">
             <div class="close-cross" onclick="closePaymentMethodModal()">✕</div>
-            <div style="text-align: center; font-weight: 800; font-size: 18px; margin-bottom: 16px;">Новый способ оплаты</div>
+            <div style="text-align: center; font-weight: 800; font-size: 18px; margin-bottom: 16px;" id="pm-modal-title">Новый способ оплаты</div>
 
             <input type="hidden" id="pm-edit-id">
 
             <div class="form-group">
                 <label class="form-label">Тип</label>
                 <div class="selector-group" style="width: 100%;">
-                    <button id="pm-type-card" class="selector-btn active-tab" style="flex:1;" onclick="setPaymentMethodType('card')">Банк</button>
+                    <button id="pm-type-card" class="selector-btn active-tab" style="flex:1;" onclick="setPaymentMethodType('card')">Банковская карта</button>
                     <button id="pm-type-sbp" class="selector-btn" style="flex:1;" onclick="setPaymentMethodType('sbp')">СБП</button>
-                    <button id="pm-type-wallet" class="selector-btn" style="flex:1;" onclick="setPaymentMethodType('wallet')">Кошелек</button>
                 </div>
             </div>
 
-            <!-- КАРТА: выбор конкретного банка + карта/телефон -->
-            <div id="pm-section-card" class="form-group pm-fade-section">
-                <label class="form-label">Банк</label>
-                <div id="pm-bank-grid" class="bank-grid"></div>
+            <div class="pm-fields-wrap">
+                <div class="pm-fields" id="pm-fields">
+                    <!-- Поле "Карта" -->
+                    <div id="pm-card-fields">
+                        <div class="form-group">
+                            <label class="form-label">Банк</label>
+                            <div class="bank-grid" id="pm-card-bank-grid"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Номер карты</label>
+                            <input type="text" inputmode="numeric" id="pm-card-number" class="form-input" placeholder="0000 0000 0000 0000" maxlength="23" oninput="formatCardNumberInput(this)">
+                        </div>
+                    </div>
 
-                <label class="form-label" style="margin-top:14px;">Реквизит</label>
-                <div class="pm-subtype-toggle">
-                    <div id="pm-subtype-card" class="pm-subtype-btn active-tab" onclick="setPmRequisiteType('card')">Номер карты</div>
-                    <div id="pm-subtype-phone" class="pm-subtype-btn" onclick="setPmRequisiteType('phone')">Номер телефона</div>
+                    <!-- Поля "СБП" -->
+                    <div id="pm-sbp-fields" style="display:none;">
+                        <div class="form-group">
+                            <label class="form-label">Номер телефона СБП</label>
+                            <input type="text" inputmode="tel" id="pm-sbp-phone" class="form-input" placeholder="+7 900 000-00-00" maxlength="18" oninput="formatSbpPhoneInput(this)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Какие банки привязаны к номеру</label>
+                            <div class="sbp-bank-list" id="pm-sbp-bank-list"></div>
+                        </div>
+                    </div>
                 </div>
-                <input type="text" inputmode="numeric" id="pm-card-requisite" class="form-input" style="margin-top:8px;"
-                       placeholder="0000 0000 0000 0000" oninput="onPmCardRequisiteInput(this)">
-            </div>
-
-            <!-- СБП: телефон + привязанные банки -->
-            <div id="pm-section-sbp" class="form-group pm-fade-section" style="display:none;">
-                <label class="form-label">Номер телефона СБП</label>
-                <input type="text" inputmode="tel" id="pm-sbp-phone" class="form-input" placeholder="+7 ___ ___-__-__" oninput="onPmPhoneInput(this)">
-                <label class="form-label" style="margin-top:14px;">Какие банки привязаны к номеру?</label>
-                <div id="pm-sbp-bank-list" class="sbp-bank-list"></div>
-                <div class="pm-hint">Выберите все банки, куда можно перевести деньги по этому номеру через СБП</div>
-            </div>
-
-            <!-- КОШЕЛЕК: свободный ввод -->
-            <div id="pm-section-wallet" class="form-group pm-fade-section" style="display:none;">
-                <label class="form-label">Платежная система</label>
-                <input type="text" id="pm-wallet-bank-name" class="form-input" placeholder="Например: ЮMoney">
-                <label class="form-label" style="margin-top:14px;">Номер кошелька</label>
-                <input type="text" id="pm-wallet-requisite" class="form-input" placeholder="Реквизит кошелька">
             </div>
 
             <div class="form-group">
@@ -886,14 +906,8 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">Банк / Метод оплаты</label>
-                <select id="new-ad-bank" class="form-input">
-                    <option value="Сбербанк">Сбербанк</option>
-                    <option value="Т-Банк (Тинькофф)">Т-Банк (Тинькофф)</option>
-                    <option value="СБП">СБП</option>
-                    <option value="ВТБ">ВТБ</option>
-                    <option value="Альфа-Банк">Альфа-Банк</option>
-                </select>
+                <label class="form-label">Способ оплаты</label>
+                <select id="new-ad-bank" class="form-input"></select>
             </div>
 
             <div class="form-group">
@@ -924,14 +938,8 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">Банк / Метод оплаты</label>
-                <select id="edit-ad-bank" class="form-input">
-                    <option value="Сбербанк">Сбербанк</option>
-                    <option value="Т-Банк (Тинькофф)">Т-Банк (Тинькофф)</option>
-                    <option value="СБП">СБП</option>
-                    <option value="ВТБ">ВТБ</option>
-                    <option value="Альфа-Банк">Альфа-Банк</option>
-                </select>
+                <label class="form-label">Способ оплаты</label>
+                <select id="edit-ad-bank" class="form-input"></select>
             </div>
 
             <div class="form-group">
@@ -1307,24 +1315,44 @@
         /* ==== Способы оплаты ==== */
         let paymentMethods = [];
         let newPaymentMethodType = 'card';
-        let pmSelectedBank = '';
-        let pmRequisiteType = 'card';
-        let pmSelectedSbpBanks = [];
-        let banksCache = null;
+        let selectedCardBank = '';
+        let selectedSbpBanks = [];
+        let paymentBanksCache = null; // { card_banks: [...], sbp_banks: [...] }
+
+        const BANK_COLORS = {
+            'Сбербанк': '#21A038', 'Т-Банк': '#FFDD2D', 'Озон Банк': '#005BFF',
+            'Альфа-Банк': '#EF3124', 'ВТБ': '#009FDF', 'Газпромбанк': '#0079C1',
+            'Совкомбанк': '#E4002B', 'Райффайзенбанк': '#FFED00', 'Почта Банк': '#6C2EB9',
+            'Ак Барс Банк': '#00529B', 'Росбанк': '#C8102E', 'МТС Банк': '#D0006F',
+            'Промсвязьбанк': '#8B1A1A', 'Россельхозбанк': '#004C97', 'Открытие': '#1BA0DB'
+        };
+        const BANK_DARK_TEXT = new Set(['Т-Банк', 'Райффайзенбанк']);
+        const BANK_INITIALS = {
+            'Сбербанк': 'СБ', 'Т-Банк': 'Т', 'Озон Банк': 'ОЗ', 'Альфа-Банк': 'АЛ',
+            'ВТБ': 'ВТБ', 'Газпромбанк': 'ГПБ', 'Совкомбанк': 'СК', 'Райффайзенбанк': 'РФ',
+            'Почта Банк': 'ПБ', 'Ак Барс Банк': 'АКБ', 'Росбанк': 'РОС', 'МТС Банк': 'МТС',
+            'Промсвязьбанк': 'ПСБ', 'Россельхозбанк': 'РСХ', 'Открытие': 'ОТК'
+        };
+        function bankDot(bankName) {
+            const bg = BANK_COLORS[bankName] || 'var(--brand-accent)';
+            const fg = BANK_DARK_TEXT.has(bankName) ? '#1F2937' : '#fff';
+            const label = BANK_INITIALS[bankName] || bankName.slice(0, 2).toUpperCase();
+            return `<div class="bank-chip-dot" style="background:${bg}; color:${fg};">${label}</div>`;
+        }
+
+        async function ensurePaymentBanks() {
+            if (paymentBanksCache) return paymentBanksCache;
+            try {
+                const res = await fetch(`${API}/api/payment-methods/banks`);
+                paymentBanksCache = await res.json();
+            } catch (e) {
+                paymentBanksCache = { card_banks: [], sbp_banks: [] };
+            }
+            return paymentBanksCache;
+        }
 
         function openPaymentMethodsScreen() {
             switchNav('payment-methods');
-        }
-
-        async function loadBanksList() {
-            if (banksCache) return banksCache;
-            try {
-                const res = await fetch(`${API}/api/banks`, { headers: getAuthHeaders() });
-                banksCache = await res.json();
-            } catch (e) {
-                banksCache = { sbp_banks: [], tier1_banks: [] };
-            }
-            return banksCache;
         }
 
         async function loadPaymentMethods() {
@@ -1344,7 +1372,7 @@
             }
         }
 
-        const PM_TYPE_LABELS = { card: 'Банк', sbp: 'СБП', wallet: 'Кошелек' };
+        const PM_TYPE_LABELS = { card: 'Карта', sbp: 'СБП' };
 
         function renderPaymentMethods() {
             const list = document.getElementById('payment-methods-list');
@@ -1353,142 +1381,127 @@
                 return;
             }
             list.innerHTML = paymentMethods.map(pm => {
-                const subLabel = pm.method_type === 'sbp'
-                    ? `СБП · ${pm.requisite_masked} · ${(pm.sbp_banks || []).length} банков`
-                    : `${PM_TYPE_LABELS[pm.method_type] || pm.method_type}${pm.requisite_type === 'phone' ? ' · телефон' : ''} · ${pm.requisite_masked}`;
+                const sub = pm.method_type === 'sbp' && pm.linked_banks && pm.linked_banks.length
+                    ? `${pm.requisite_masked} · ${pm.linked_banks.join(', ')}`
+                    : pm.requisite_masked;
                 return `
                 <div class="card">
                     <div class="card-top-row">
-                        <div class="card-price-block">
-                            <span class="card-price" style="font-size:15px;">${pm.bank_name}</span>
-                            <span class="card-price-sub">${subLabel}</span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${bankDot(pm.method_type === 'sbp' ? 'СБП' : pm.bank_name)}
+                            <div class="card-price-block">
+                                <span class="card-price" style="font-size:15px;">${pm.method_type === 'sbp' ? 'СБП' : pm.bank_name}</span>
+                                <span class="card-price-sub">${PM_TYPE_LABELS[pm.method_type] || pm.method_type} · ${sub}</span>
+                            </div>
                         </div>
                         <span class="status-pill ${pm.is_active ? 'pill-ok' : 'pill-need'}">${pm.is_active ? 'Активен' : 'Скрыт'}</span>
                     </div>
                     <div style="display:flex; gap:8px; margin-top:8px;">
-                        <button class="btn-action-sm btn-sell-sm" style="flex:1;" onclick='openEditPaymentMethodModal(${JSON.stringify(pm)})'>Изменить</button>
-                        <button class="btn-action-sm btn-buy-sm" style="flex:1;" onclick="deletePaymentMethod(${pm.id})">Удалить</button>
+                        <button class="btn-action-sm btn-neutral-sm" style="flex:1;" onclick='openEditPaymentMethodModal(${JSON.stringify(pm)})'>Изменить</button>
+                        <button class="btn-action-sm btn-sell-sm" style="flex:1;" onclick="deletePaymentMethod(${pm.id})">Удалить</button>
                     </div>
                 </div>
-            `}).join('');
+            `;
+            }).join('');
         }
 
-        function setPaymentMethodType(type) {
-            newPaymentMethodType = type;
-            document.getElementById('pm-type-card').className = `selector-btn ${type === 'card' ? 'active-tab' : ''}`;
-            document.getElementById('pm-type-sbp').className = `selector-btn ${type === 'sbp' ? 'active-tab' : ''}`;
-            document.getElementById('pm-type-wallet').className = `selector-btn ${type === 'wallet' ? 'active-tab' : ''}`;
-
-            document.getElementById('pm-section-card').style.display = type === 'card' ? '' : 'none';
-            document.getElementById('pm-section-sbp').style.display = type === 'sbp' ? '' : 'none';
-            document.getElementById('pm-section-wallet').style.display = type === 'wallet' ? '' : 'none';
-
-            if (type === 'card') renderBankGrid();
-            if (type === 'sbp') renderSbpBankList();
-        }
-
-        function setPmRequisiteType(t) {
-            pmRequisiteType = t;
-            document.getElementById('pm-subtype-card').className = `pm-subtype-btn ${t === 'card' ? 'active-tab' : ''}`;
-            document.getElementById('pm-subtype-phone').className = `pm-subtype-btn ${t === 'phone' ? 'active-tab' : ''}`;
-            const input = document.getElementById('pm-card-requisite');
-            input.value = '';
-            input.placeholder = t === 'card' ? '0000 0000 0000 0000' : '+7 ___ ___-__-__';
-        }
-
-        function onPmCardRequisiteInput(el) {
-            if (pmRequisiteType === 'phone') {
-                formatPhoneInput(el);
-            } else {
-                // группировка номера карты по 4 цифры
-                let digits = el.value.replace(/\D/g, '').slice(0, 19);
-                el.value = digits.replace(/(.{4})/g, '$1 ').trim();
-            }
-        }
-
-        function onPmPhoneInput(el) {
-            formatPhoneInput(el);
-        }
-
-        function formatPhoneInput(el) {
-            let digits = el.value.replace(/\D/g, '');
-            // при первой введенной цифре сразу подставляем код страны +7
-            if (digits.startsWith('8')) digits = '7' + digits.slice(1);
-            if (digits.length > 0 && !digits.startsWith('7')) digits = '7' + digits;
-            digits = digits.slice(0, 11);
-            const rest = digits.slice(1);
-            let formatted = digits.length ? '+7' : '';
-            if (rest.length > 0) formatted += ' ' + rest.slice(0, 3);
-            if (rest.length > 3) formatted += ' ' + rest.slice(3, 6);
-            if (rest.length > 6) formatted += '-' + rest.slice(6, 8);
-            if (rest.length > 8) formatted += '-' + rest.slice(8, 10);
-            el.value = formatted;
-        }
-
-        async function renderBankGrid() {
-            const grid = document.getElementById('pm-bank-grid');
-            const banks = await loadBanksList();
-            grid.innerHTML = (banks.tier1_banks || []).map(b => `
-                <div class="bank-chip-btn ${pmSelectedBank === b ? 'picked' : ''}" onclick="pickPmBank('${b.replace(/'/g, "\\'")}')">${b}</div>
+        function renderCardBankGrid() {
+            const grid = document.getElementById('pm-card-bank-grid');
+            const banks = (paymentBanksCache && paymentBanksCache.card_banks) || [];
+            grid.innerHTML = banks.map(b => `
+                <div class="bank-chip ${selectedCardBank === b ? 'selected' : ''}" onclick="pickCardBank('${b.replace(/'/g, "\\'")}')">
+                    ${bankDot(b)}
+                    <span class="bank-chip-name">${b}</span>
+                </div>
             `).join('');
         }
 
-        function pickPmBank(bank) {
-            pmSelectedBank = bank;
-            renderBankGrid();
+        function pickCardBank(bank) {
+            selectedCardBank = bank;
+            renderCardBankGrid();
         }
 
-        async function renderSbpBankList() {
-            const box = document.getElementById('pm-sbp-bank-list');
-            const banks = await loadBanksList();
-            box.innerHTML = (banks.sbp_banks || []).map(b => `
-                <div class="sbp-bank-chip ${pmSelectedSbpBanks.includes(b) ? 'picked' : ''}" onclick="toggleSbpBank('${b.replace(/'/g, "\\'")}')">
-                    <span class="chip-dot"></span>${b}
-                </div>
+        function renderSbpBankList() {
+            const wrap = document.getElementById('pm-sbp-bank-list');
+            const banks = (paymentBanksCache && paymentBanksCache.sbp_banks) || [];
+            wrap.innerHTML = banks.map(b => `
+                <div class="sbp-bank-chip ${selectedSbpBanks.includes(b) ? 'selected' : ''}" onclick="toggleSbpBank('${b.replace(/'/g, "\\'")}')">${b}</div>
             `).join('');
         }
 
         function toggleSbpBank(bank) {
-            if (pmSelectedSbpBanks.includes(bank)) {
-                pmSelectedSbpBanks = pmSelectedSbpBanks.filter(b => b !== bank);
-            } else {
-                pmSelectedSbpBanks.push(bank);
-            }
+            const idx = selectedSbpBanks.indexOf(bank);
+            if (idx >= 0) selectedSbpBanks.splice(idx, 1);
+            else selectedSbpBanks.push(bank);
             renderSbpBankList();
         }
 
-        function openAddPaymentMethodModal() {
+        function formatCardNumberInput(el) {
+            let digits = el.value.replace(/\D/g, '').slice(0, 19);
+            el.value = digits.replace(/(.{4})/g, '$1 ').trim();
+        }
+
+        function formatSbpPhoneInput(el) {
+            let digits = el.value.replace(/\D/g, '');
+            if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+            if (digits.length > 0 && !digits.startsWith('7')) digits = '7' + digits;
+            digits = digits.slice(0, 11);
+
+            let out = '';
+            if (digits.length > 0) {
+                out = '+7';
+                const rest = digits.slice(1);
+                if (rest.length > 0) out += ' ' + rest.slice(0, 3);
+                if (rest.length > 3) out += ' ' + rest.slice(3, 6);
+                if (rest.length > 6) out += '-' + rest.slice(6, 8);
+                if (rest.length > 8) out += '-' + rest.slice(8, 10);
+            }
+            el.value = out;
+        }
+
+        function swapPmFields(showType) {
+            const wrap = document.getElementById('pm-fields');
+            wrap.classList.add('pm-fade');
+            setTimeout(() => {
+                document.getElementById('pm-card-fields').style.display = showType === 'card' ? '' : 'none';
+                document.getElementById('pm-sbp-fields').style.display = showType === 'sbp' ? '' : 'none';
+                wrap.classList.remove('pm-fade');
+            }, 180);
+        }
+
+        async function setPaymentMethodType(type) {
+            newPaymentMethodType = type;
+            document.getElementById('pm-type-card').className = `selector-btn ${type === 'card' ? 'active-tab' : ''}`;
+            document.getElementById('pm-type-sbp').className = `selector-btn ${type === 'sbp' ? 'active-tab' : ''}`;
+            await ensurePaymentBanks();
+            renderCardBankGrid();
+            renderSbpBankList();
+            swapPmFields(type);
+        }
+
+        async function openAddPaymentMethodModal() {
+            document.getElementById('pm-modal-title').innerText = 'Новый способ оплаты';
             document.getElementById('pm-edit-id').value = '';
-            document.getElementById('pm-card-requisite').value = '';
+            document.getElementById('pm-card-number').value = '';
             document.getElementById('pm-sbp-phone').value = '';
-            document.getElementById('pm-wallet-bank-name').value = '';
-            document.getElementById('pm-wallet-requisite').value = '';
             document.getElementById('pm-holder-name').value = '';
-            pmSelectedBank = '';
-            pmSelectedSbpBanks = [];
-            pmRequisiteType = 'card';
-            setPmRequisiteType('card');
-            setPaymentMethodType('card');
+            selectedCardBank = '';
+            selectedSbpBanks = [];
+            await setPaymentMethodType('card');
             document.getElementById('payment-method-modal').classList.add('active');
         }
 
-        function openEditPaymentMethodModal(pm) {
+        async function openEditPaymentMethodModal(pm) {
+            document.getElementById('pm-modal-title').innerText = 'Изменить способ оплаты';
             document.getElementById('pm-edit-id').value = pm.id;
+            document.getElementById('pm-card-number').value = '';
+            document.getElementById('pm-card-number').placeholder = pm.method_type === 'card' ? `Текущий: ${pm.requisite_masked} (введите новый, чтобы изменить)` : '0000 0000 0000 0000';
+            document.getElementById('pm-sbp-phone').value = '';
+            document.getElementById('pm-sbp-phone').placeholder = pm.method_type === 'sbp' ? `Текущий: ${pm.requisite_masked} (введите новый, чтобы изменить)` : '+7 900 000-00-00';
             document.getElementById('pm-holder-name').value = pm.holder_name || '';
-            pmSelectedBank = pm.method_type === 'card' ? pm.bank_name : '';
-            pmSelectedSbpBanks = pm.method_type === 'sbp' ? [...(pm.sbp_banks || [])] : [];
-            pmRequisiteType = pm.requisite_type === 'phone' ? 'phone' : 'card';
-
-            setPaymentMethodType(pm.method_type);
-            if (pm.method_type === 'card') {
-                setPmRequisiteType(pmRequisiteType);
-                document.getElementById('pm-card-requisite').placeholder = `Текущий: ${pm.requisite_masked} (введите новый, чтобы изменить)`;
-            } else if (pm.method_type === 'sbp') {
-                document.getElementById('pm-sbp-phone').placeholder = `Текущий: ${pm.requisite_masked} (введите новый, чтобы изменить)`;
-            } else {
-                document.getElementById('pm-wallet-bank-name').value = pm.bank_name;
-                document.getElementById('pm-wallet-requisite').placeholder = `Текущий: ${pm.requisite_masked}`;
-            }
+            selectedCardBank = pm.method_type === 'card' ? pm.bank_name : '';
+            selectedSbpBanks = pm.method_type === 'sbp' ? (pm.linked_banks || []).slice() : [];
+            await setPaymentMethodType(pm.method_type);
             document.getElementById('payment-method-modal').classList.add('active');
         }
 
@@ -1499,35 +1512,27 @@
         async function submitPaymentMethod() {
             const editId = document.getElementById('pm-edit-id').value;
             const holderName = document.getElementById('pm-holder-name').value.trim();
-            const type = newPaymentMethodType;
 
-            let bankName = '', requisite = '', requisiteType = 'card', sbpBanks = undefined;
-
-            if (type === 'card') {
-                bankName = pmSelectedBank;
-                requisite = document.getElementById('pm-card-requisite').value.trim();
-                requisiteType = pmRequisiteType;
+            let bankName, requisite;
+            if (newPaymentMethodType === 'card') {
+                bankName = selectedCardBank;
+                requisite = document.getElementById('pm-card-number').value.trim();
                 if (!bankName) { showToast('Выберите банк', 'warning'); return; }
-                if (!requisite) { showToast('Укажите реквизит', 'warning'); return; }
-            } else if (type === 'sbp') {
+                if (!requisite) { showToast('Укажите номер карты', 'warning'); return; }
+            } else {
                 bankName = 'СБП';
                 requisite = document.getElementById('pm-sbp-phone').value.trim();
-                sbpBanks = pmSelectedSbpBanks;
-                if (!requisite) { showToast('Укажите номер телефона', 'warning'); return; }
-                if (sbpBanks.length === 0) { showToast('Выберите хотя бы один банк СБП', 'warning'); return; }
-            } else {
-                bankName = document.getElementById('pm-wallet-bank-name').value.trim();
-                requisite = document.getElementById('pm-wallet-requisite').value.trim();
-                if (!bankName) { showToast('Укажите платежную систему', 'warning'); return; }
-                if (!requisite) { showToast('Укажите реквизит', 'warning'); return; }
+                if (!requisite) { showToast('Укажите номер телефона СБП', 'warning'); return; }
+                if (selectedSbpBanks.length === 0) { showToast('Выберите хотя бы один банк, привязанный к СБП', 'warning'); return; }
             }
+
 
             try {
                 const url = editId ? `${API}/api/user/payment-methods/${editId}` : `${API}/api/user/payment-methods`;
                 const method = editId ? 'PUT' : 'POST';
                 const body = editId
-                    ? { bank_name: bankName, requisite: requisite, holder_name: holderName, is_active: true, requisite_type: requisiteType, sbp_banks: sbpBanks }
-                    : { method_type: type, bank_name: bankName, requisite: requisite, holder_name: holderName, requisite_type: requisiteType, sbp_banks: sbpBanks };
+                    ? { bank_name: bankName, requisite: requisite, holder_name: holderName, is_active: true, linked_banks: newPaymentMethodType === 'sbp' ? selectedSbpBanks : null }
+                    : { method_type: newPaymentMethodType, bank_name: bankName, requisite: requisite, holder_name: holderName, linked_banks: newPaymentMethodType === 'sbp' ? selectedSbpBanks : null };
 
                 const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(body) });
                 const data = await res.json();
@@ -1579,7 +1584,39 @@
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-        function openCreateAdModal() { openModal('create-ad-modal'); }
+        function populatePaymentMethodSelect(selectId, currentValue) {
+            const sel = document.getElementById(selectId);
+            const activeMethods = paymentMethods.filter(pm => pm.is_active);
+            const options = activeMethods.map(pm => `${pm.method_type === 'sbp' ? 'СБП' : pm.bank_name} · ${pm.requisite_masked}`);
+
+            if (options.length === 0) {
+                sel.innerHTML = `<option value="">Нет добавленных способов оплаты</option>`;
+                return false;
+            }
+
+            if (currentValue && !options.includes(currentValue)) {
+                options.unshift(currentValue);
+            }
+
+            sel.innerHTML = options.map(o => `<option value="${o.replace(/"/g, '&quot;')}">${o}</option>`).join('');
+            if (currentValue) sel.value = currentValue;
+            return true;
+        }
+
+        async function openCreateAdModal() {
+            try {
+                const res = await fetch(`${API}/api/user/payment-methods`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                if (res.ok) paymentMethods = data.payment_methods || [];
+            } catch (e) { /* используем то, что уже есть в памяти */ }
+
+            if (!populatePaymentMethodSelect('new-ad-bank')) {
+                showToast('Сначала добавьте способ оплаты в профиле', 'warning');
+                switchNav('payment-methods');
+                return;
+            }
+            openModal('create-ad-modal');
+        }
         function closeCreateAdModal() { closeModal('create-ad-modal'); }
 
         function closeEditAdModal() { closeModal('edit-ad-modal'); }
@@ -1670,13 +1707,19 @@
             }
         }
 
-        function openEditAdModal(id, price, amount, bank, comment) {
+        async function openEditAdModal(id, price, amount, bank, comment) {
             document.getElementById('edit-ad-id').value = id;
             document.getElementById('edit-ad-price').value = price;
             document.getElementById('edit-ad-amount').value = amount;
-            document.getElementById('edit-ad-bank').value = bank;
             document.getElementById('edit-ad-desc').value = comment || '';
-            
+
+            try {
+                const res = await fetch(`${API}/api/user/payment-methods`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                if (res.ok) paymentMethods = data.payment_methods || [];
+            } catch (e) { /* используем то, что уже есть в памяти */ }
+            populatePaymentMethodSelect('edit-ad-bank', bank);
+
             openModal('edit-ad-modal');
         }
 
