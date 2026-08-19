@@ -287,7 +287,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 6px;
         }
         .btn-ctrl:active { transform: scale(0.97); }
         .btn-ctrl-danger { background: rgba(255, 59, 48, 0.1); color: var(--btn-sell-color); border-color: rgba(255, 59, 48, 0.3); }
@@ -424,7 +424,7 @@
         }
         .menu-icon svg path { fill: var(--icon-color); }
 
-        .toggle-switch { width: 44px; height: 24px; background: var(--card-bg-sub); border-radius: 12px; position: relative; cursor: pointer; }
+        .toggle-switch { width: 44px; height: 24px; background: var(--card-bg-sub); border-radius: 12px; position: relative; cursor: pointer; transition: background 0.2s; }
         .toggle-switch.on { background: var(--btn-buy-color); }
         .toggle-switch::after { content: ''; position: absolute; width: 20px; height: 20px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: 0.2s; }
         .toggle-switch.on::after { left: 22px; }
@@ -571,7 +571,7 @@
                 </div>
             </div>
 
-            <!-- Инпут Суммы (ТОЛЬКО ЦИФРЫ) -->
+            <!-- Инпут Суммы -->
             <div class="custom-select-wrapper" style="flex:1.2;">
                 <div class="filter-box">
                     <input type="text" inputmode="decimal" class="numeric-only" id="filter-amount" placeholder="Сумма RUB" oninput="applyFilters()">
@@ -651,7 +651,8 @@
                         </div>
                         <span>Торги</span>
                     </div>
-                    <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+                    <!-- Переключатель торгов -->
+                    <div id="trading-toggle" class="toggle-switch on" onclick="toggleTrading(this)"></div>
                 </div>
             </div>
 
@@ -779,6 +780,28 @@
         </div>
     </div>
 
+    <!-- КАСТОМНОЕ МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ -->
+    <div id="confirm-delete-modal" class="blur-overlay" onclick="if(event.target.id==='confirm-delete-modal') closeConfirmDeleteModal()">
+        <div class="modal-sheet" style="border-radius: 20px; margin-bottom: auto; margin-top: auto; text-align: center;">
+            <div class="close-cross" onclick="closeConfirmDeleteModal()">✕</div>
+            
+            <div style="margin-bottom: 16px;">
+                <div style="width:48px; height:48px; background:rgba(255,59,48,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 12px auto;">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="var(--btn-sell-color)" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                    </svg>
+                </div>
+                <div style="font-weight: 800; font-size: 17px;">Удалить объявление?</div>
+                <div style="font-size: 13px; color: var(--tg-hint); margin-top: 6px;">
+                    Это действие необратимо. Объявление будет полностью удалено с биржи.
+                </div>
+            </div>
+
+            <button class="btn-wallet-submit" style="background: var(--btn-sell-color);" onclick="executeDeleteAd()">Удалить</button>
+            <button class="btn-wallet-cancel" onclick="closeConfirmDeleteModal()">Отмена</button>
+        </div>
+    </div>
+
     <!-- МОДАЛЬНОЕ ОКНО ВЕРИФИКАЦИИ -->
     <div id="auth-blur-modal" class="blur-overlay" onclick="if(event.target.id==='auth-blur-modal') closeAuthModal()">
         <div class="modal-sheet" style="border-radius: 20px; margin-bottom: auto; margin-top: auto;">
@@ -890,12 +913,14 @@
         let newAdType = 'buy';
         let profileAdSide = 'buy';
         let selectedBankValue = 'ALL';
+        let isTradingEnabled = true; // Глобальное состояние функции "Торги"
+        let adToDeleteId = null;     // Хранение ID для удаления
+
         let userStatus = { is_verified: false, has_wallet: false, has_phone: false };
         let activeAd = null;
         let activeDealId = null;
         let allMarketAds = [];
 
-        // Функция формирования авторизационных заголовков с валидацией Telegram
         function getAuthHeaders() {
             return {
                 'Content-Type': 'application/json',
@@ -904,7 +929,6 @@
             };
         }
 
-        // Кастомный всплывающий Toast вместо системного alert
         function showToast(message, icon = '✅') {
             const toast = document.getElementById('toast-notif');
             document.getElementById('toast-icon').innerText = icon;
@@ -916,13 +940,11 @@
             }, 3000);
         }
 
-        // Блокировка ввода любых символов, кроме цифр и одной точки
         document.addEventListener('input', function(e) {
             if (e.target.classList.contains('numeric-only')) {
-                let val = e.target.value.replace(',', '.'); // Замена запятых
-                val = val.replace(/[^0-9.]/g, ''); // Удаление всех символов кроме цифр и точки
+                let val = e.target.value.replace(',', '.');
+                val = val.replace(/[^0-9.]/g, '');
                 
-                // Ограничиваем количество точек одной
                 const parts = val.split('.');
                 if (parts.length > 2) {
                     val = parts[0] + '.' + parts.slice(1).join('');
@@ -986,7 +1008,6 @@
             else btn.innerText = "Все подтверждено!";
         }
 
-        /* Выпадающие списки */
         function toggleDropdown(id) {
             const el = document.getElementById(id);
             const isShown = el.classList.contains('show');
@@ -1050,7 +1071,18 @@
             renderMyAds();
         }
 
-        /* Управление модальными окнами */
+        /* Переключатель Торги */
+        async function toggleTrading(el) {
+            isTradingEnabled = !isTradingEnabled;
+            el.classList.toggle('on', isTradingEnabled);
+
+            showToast(isTradingEnabled ? "Торги включены (объявления активны)" : "Торги выключены (объявления скрыты)", "ℹ️");
+
+            // Обновляем визуал объявления и маркета
+            renderMyAds();
+            await loadMarket(currentSide);
+        }
+
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
@@ -1058,6 +1090,16 @@
         function closeCreateAdModal() { closeModal('create-ad-modal'); }
 
         function closeEditAdModal() { closeModal('edit-ad-modal'); }
+
+        function openConfirmDeleteModal(adId) {
+            adToDeleteId = adId;
+            openModal('confirm-delete-modal');
+        }
+
+        function closeConfirmDeleteModal() {
+            adToDeleteId = null;
+            closeModal('confirm-delete-modal');
+        }
 
         function setAdType(type) {
             newAdType = type;
@@ -1095,8 +1137,6 @@
                     document.getElementById('new-ad-amount').value = '';
                     document.getElementById('new-ad-desc').value = '';
                     closeCreateAdModal();
-                    
-                    // Обновляем маркет и профиль
                     await loadMarket(currentSide);
                 } else {
                     const err = await res.json();
@@ -1107,42 +1147,19 @@
             }
         }
 
-        /* --- ЛОГИКА УПРАВЛЕНИЯ МОИМИ ОБЪЯВЛЕНИЯМИ --- */
-
-        // Снятие с публикации / активация
-        async function toggleAdStatus(adId, currentStatus) {
-            const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-            try {
-                const res = await fetch(`${API}/api/ads/${adId}/status`, {
-                    method: 'PATCH',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({ status: newStatus })
-                });
-
-                if (res.ok) {
-                    showToast(newStatus === 'active' ? "Объявление активировано" : "Объявление снято", "ℹ️");
-                    await loadMarket(currentSide);
-                } else {
-                    const err = await res.json();
-                    showToast(err.detail || 'Ошибка изменения статуса', "❌");
-                }
-            } catch (e) {
-                showToast("Ошибка сети", "❌");
-            }
-        }
-
-        // Полное удаление
-        async function deleteAd(adId) {
-            if (!confirm('Вы действительно хотите удалить это объявление?')) return;
+        /* Выполнение удаления объявления после подтверждения */
+        async function executeDeleteAd() {
+            if (!adToDeleteId) return;
 
             try {
-                const res = await fetch(`${API}/api/ads/${adId}`, {
+                const res = await fetch(`${API}/api/ads/${adToDeleteId}`, {
                     method: 'DELETE',
                     headers: getAuthHeaders()
                 });
 
                 if (res.ok) {
                     showToast("Объявление удалено");
+                    closeConfirmDeleteModal();
                     await loadMarket(currentSide);
                 } else {
                     const err = await res.json();
@@ -1153,7 +1170,6 @@
             }
         }
 
-        // Открытие модалки редактирования
         function openEditAdModal(id, price, amount, bank, comment) {
             document.getElementById('edit-ad-id').value = id;
             document.getElementById('edit-ad-price').value = price;
@@ -1164,7 +1180,6 @@
             openModal('edit-ad-modal');
         }
 
-        // Сохранение изменений редактирования
         async function submitEditAd() {
             const adId = document.getElementById('edit-ad-id').value;
             const price = parseFloat(document.getElementById('edit-ad-price').value);
@@ -1202,6 +1217,7 @@
             }
         }
 
+        /* РЕНДЕР МОИХ ОБЪЯВЛЕНИЙ В ПРОФИЛЕ */
         function renderMyAds() {
             const container = document.getElementById('my-ads-list');
             const myAds = allMarketAds.filter(ad => String(ad.owner) === String(user.id) && ad.type === profileAdSide);
@@ -1218,22 +1234,28 @@
                             <span class="card-price" style="font-size:18px;">${ad.price} RUB</span>
                             <span class="card-price-sub">${ad.amount} USDT • ${ad.bank}</span>
                         </div>
-                        <span class="status-pill ${ad.status === 'active' ? 'pill-ok' : 'pill-need'}">
-                            ${ad.status === 'active' ? 'Активно' : 'На паузе'}
+                        <span class="status-pill ${isTradingEnabled ? 'pill-ok' : 'pill-need'}">
+                            ${isTradingEnabled ? 'Активно' : 'Торги выкл.'}
                         </span>
                     </div>
 
                     ${ad.comment ? `<div style="font-size:12px; color:var(--tg-hint); margin-top:4px;">💬 ${ad.comment}</div>` : ''}
 
                     <div class="my-ad-controls">
-                        <button class="btn-ctrl" onclick="toggleAdStatus(${ad.id}, '${ad.status}')">
-                            ${ad.status === 'active' ? '⏸ Снять' : '▶️ Включить'}
-                        </button>
+                        <!-- Кнопка Редактировать (Минималистичный SVG Карандаш) -->
                         <button class="btn-ctrl" onclick="openEditAdModal(${ad.id}, ${ad.price}, ${ad.amount}, '${ad.bank}', '${ad.comment.replace(/'/g, "\\'")}')">
-                            ✏️ Изменить
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path fill="var(--icon-color)" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                            </svg>
+                            Изменить
                         </button>
-                        <button class="btn-ctrl btn-ctrl-danger" onclick="deleteAd(${ad.id})">
-                            🗑
+                        
+                        <!-- Кнопка Удалить (Минималистичный SVG Мусорный Бак) -->
+                        <button class="btn-ctrl btn-ctrl-danger" onclick="openConfirmDeleteModal(${ad.id})">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path fill="var(--btn-sell-color)" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                            </svg>
+                            Удалить
                         </button>
                     </div>
                 </div>
@@ -1400,7 +1422,13 @@
                 if (!res.ok) return;
                 const data = await res.json();
                 allMarketAds = data.ads || [];
-                renderMarketList(allMarketAds, side);
+                
+                // Если Торги выключены, скрываем предложения текущего пользователя из общего рынка
+                const visibleAds = isTradingEnabled 
+                    ? allMarketAds 
+                    : allMarketAds.filter(ad => String(ad.owner) !== String(user.id));
+
+                renderMarketList(visibleAds, side);
                 renderMyAds();
             } catch (e) {
                 console.error("loadMarket error:", e);
@@ -1454,7 +1482,11 @@
         function applyFilters() {
             const amountVal = parseFloat(document.getElementById('filter-amount').value) || 0;
 
-            const filtered = allMarketAds.filter(ad => {
+            const baseAds = isTradingEnabled 
+                ? allMarketAds 
+                : allMarketAds.filter(ad => String(ad.owner) !== String(user.id));
+
+            const filtered = baseAds.filter(ad => {
                 const matchesBank = selectedBankValue === 'ALL' || ad.bank === selectedBankValue;
                 const maxFiat = ad.amount * ad.price;
                 const matchesAmount = amountVal === 0 || maxFiat >= amountVal;
