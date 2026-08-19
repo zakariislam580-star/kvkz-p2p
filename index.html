@@ -265,6 +265,33 @@
         .btn-buy-sm { background: var(--btn-buy-color); }
         .btn-sell-sm { background: var(--btn-sell-color); }
 
+        /* Кнопки управления карточкой в профиле */
+        .my-ad-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 0.5px dashed var(--border-color);
+        }
+
+        .btn-ctrl {
+            flex: 1;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg-sub);
+            color: var(--text-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .btn-ctrl:active { transform: scale(0.97); }
+        .btn-ctrl-danger { background: rgba(255, 59, 48, 0.1); color: var(--btn-sell-color); border-color: rgba(255, 59, 48, 0.3); }
+
         .card-user-row {
             display: flex;
             align-items: center;
@@ -714,6 +741,44 @@
         </div>
     </div>
 
+    <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ОБЪЯВЛЕНИЯ -->
+    <div id="edit-ad-modal" class="blur-overlay" onclick="if(event.target.id==='edit-ad-modal') closeEditAdModal()">
+        <div class="modal-sheet">
+            <div class="close-cross" onclick="closeEditAdModal()">✕</div>
+            <div style="text-align: center; font-weight: 800; font-size: 18px; margin-bottom: 16px;">Редактирование объявления</div>
+            
+            <input type="hidden" id="edit-ad-id">
+
+            <div class="form-group">
+                <label class="form-label">Курс обмена (RUB за 1 USDT)</label>
+                <input type="text" inputmode="decimal" id="edit-ad-price" class="form-input numeric-only" placeholder="Цена RUB">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Доступный объем (USDT)</label>
+                <input type="text" inputmode="decimal" id="edit-ad-amount" class="form-input numeric-only" placeholder="Объем USDT">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Банк / Метод оплаты</label>
+                <select id="edit-ad-bank" class="form-input">
+                    <option value="Сбербанк">Сбербанк</option>
+                    <option value="Т-Банк (Тинькофф)">Т-Банк (Тинькофф)</option>
+                    <option value="СБП">СБП</option>
+                    <option value="ВТБ">ВТБ</option>
+                    <option value="Альфа-Банк">Альфа-Банк</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Описание / Условия сделки</label>
+                <textarea id="edit-ad-desc" class="form-input" placeholder="Условия сделки"></textarea>
+            </div>
+
+            <button class="btn-wallet-submit" style="margin-top: 10px;" onclick="submitEditAd()">Сохранить изменения</button>
+        </div>
+    </div>
+
     <!-- МОДАЛЬНОЕ ОКНО ВЕРИФИКАЦИИ -->
     <div id="auth-blur-modal" class="blur-overlay" onclick="if(event.target.id==='auth-blur-modal') closeAuthModal()">
         <div class="modal-sheet" style="border-radius: 20px; margin-bottom: auto; margin-top: auto;">
@@ -969,7 +1034,7 @@
             }
 
             if (target === 'orders') loadUserOrders();
-            if (target === 'profile') renderMyAds();
+            if (target === 'profile') loadMarket(currentSide);
         }
 
         function switchOrderTab(tab) {
@@ -991,6 +1056,8 @@
 
         function openCreateAdModal() { openModal('create-ad-modal'); }
         function closeCreateAdModal() { closeModal('create-ad-modal'); }
+
+        function closeEditAdModal() { closeModal('edit-ad-modal'); }
 
         function setAdType(type) {
             newAdType = type;
@@ -1031,12 +1098,106 @@
                     
                     // Обновляем маркет и профиль
                     await loadMarket(currentSide);
-                    renderMyAds();
                 } else {
                     const err = await res.json();
                     showToast(err.detail || 'Ошибка создания', "❌");
                 }
             } catch(e) {
+                showToast("Ошибка сети", "❌");
+            }
+        }
+
+        /* --- ЛОГИКА УПРАВЛЕНИЯ МОИМИ ОБЪЯВЛЕНИЯМИ --- */
+
+        // Снятие с публикации / активация
+        async function toggleAdStatus(adId, currentStatus) {
+            const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+            try {
+                const res = await fetch(`${API}/api/ads/${adId}/status`, {
+                    method: 'PATCH',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (res.ok) {
+                    showToast(newStatus === 'active' ? "Объявление активировано" : "Объявление снято", "ℹ️");
+                    await loadMarket(currentSide);
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || 'Ошибка изменения статуса', "❌");
+                }
+            } catch (e) {
+                showToast("Ошибка сети", "❌");
+            }
+        }
+
+        // Полное удаление
+        async function deleteAd(adId) {
+            if (!confirm('Вы действительно хотите удалить это объявление?')) return;
+
+            try {
+                const res = await fetch(`${API}/api/ads/${adId}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (res.ok) {
+                    showToast("Объявление удалено");
+                    await loadMarket(currentSide);
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || 'Ошибка удаления', "❌");
+                }
+            } catch (e) {
+                showToast("Ошибка сети", "❌");
+            }
+        }
+
+        // Открытие модалки редактирования
+        function openEditAdModal(id, price, amount, bank, comment) {
+            document.getElementById('edit-ad-id').value = id;
+            document.getElementById('edit-ad-price').value = price;
+            document.getElementById('edit-ad-amount').value = amount;
+            document.getElementById('edit-ad-bank').value = bank;
+            document.getElementById('edit-ad-desc').value = comment || '';
+            
+            openModal('edit-ad-modal');
+        }
+
+        // Сохранение изменений редактирования
+        async function submitEditAd() {
+            const adId = document.getElementById('edit-ad-id').value;
+            const price = parseFloat(document.getElementById('edit-ad-price').value);
+            const amount = parseFloat(document.getElementById('edit-ad-amount').value);
+            const bank = document.getElementById('edit-ad-bank').value;
+            const comment = document.getElementById('edit-ad-desc').value.trim();
+
+            if (!price || !amount) {
+                showToast("Заполните цену и количество", "⚠️");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}/api/ads/${adId}`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        price: price,
+                        amount: amount,
+                        bank: bank,
+                        comment: comment
+                    })
+                });
+
+                if (res.ok) {
+                    showToast("Объявление обновлено");
+                    closeEditAdModal();
+                    await loadMarket(currentSide);
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || 'Ошибка обновления', "❌");
+                }
+            } catch (e) {
                 showToast("Ошибка сети", "❌");
             }
         }
@@ -1051,13 +1212,29 @@
             }
 
             container.innerHTML = myAds.map(ad => `
-                <div class="card" style="margin: 6px 0;">
+                <div class="card" style="margin: 8px 0;">
                     <div class="card-top-row">
                         <div class="card-price-block">
                             <span class="card-price" style="font-size:18px;">${ad.price} RUB</span>
                             <span class="card-price-sub">${ad.amount} USDT • ${ad.bank}</span>
                         </div>
-                        <span class="status-pill pill-ok">Активно</span>
+                        <span class="status-pill ${ad.status === 'active' ? 'pill-ok' : 'pill-need'}">
+                            ${ad.status === 'active' ? 'Активно' : 'На паузе'}
+                        </span>
+                    </div>
+
+                    ${ad.comment ? `<div style="font-size:12px; color:var(--tg-hint); margin-top:4px;">💬 ${ad.comment}</div>` : ''}
+
+                    <div class="my-ad-controls">
+                        <button class="btn-ctrl" onclick="toggleAdStatus(${ad.id}, '${ad.status}')">
+                            ${ad.status === 'active' ? '⏸ Снять' : '▶️ Включить'}
+                        </button>
+                        <button class="btn-ctrl" onclick="openEditAdModal(${ad.id}, ${ad.price}, ${ad.amount}, '${ad.bank}', '${ad.comment.replace(/'/g, "\\'")}')">
+                            ✏️ Изменить
+                        </button>
+                        <button class="btn-ctrl btn-ctrl-danger" onclick="deleteAd(${ad.id})">
+                            🗑
+                        </button>
                     </div>
                 </div>
             `).join('');
