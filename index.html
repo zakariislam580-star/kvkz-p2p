@@ -1294,12 +1294,12 @@
                             <span class="card-price-sub">${ad.amount} USDT • ${ad.bank}</span>
                         </div>
                         <span class="status-pill ${isTradingEnabled ? 'pill-ok' : 'pill-need'}">
-                            ${isTradingEnabled ? 'Активно' : 'Скрыто'}
+                            ${isTradingEnabled ? 'Активно' : 'Торги выкл.'}
                         </span>
                     </div>
 
                     ${ad.comment ? `
-                        <div class="card-desc-box" style="margin-bottom: 8px;">
+                        <div class="card-desc-box">
                             <svg viewBox="0 0 24 24" width="14" height="14" style="flex-shrink:0; margin-top:1px;">
                                 <path fill="var(--tg-hint)" d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
                             </svg>
@@ -1308,84 +1308,241 @@
                     ` : ''}
 
                     <div class="my-ad-controls">
-                        <button class="btn-ctrl" onclick="openEditAdModal(${ad.id}, ${ad.price}, ${ad.amount}, '${ad.bank.replace(/'/g, "\\'")}', '${(ad.comment || '').replace(/'/g, "\\'")}')">
-                            ✏️ Изменить
+                        <!-- Кнопка Редактировать -->
+                        <button class="btn-ctrl" onclick="openEditAdModal(${ad.id}, ${ad.price}, ${ad.amount}, '${ad.bank}', '${ad.comment.replace(/'/g, "\\'")}')">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path fill="var(--icon-color)" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                            </svg>
+                            Изменить
                         </button>
+                        
+                        <!-- Кнопка Удалить -->
                         <button class="btn-ctrl btn-ctrl-danger" onclick="openConfirmDeleteModal(${ad.id})">
-                            🗑️ Удалить
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path fill="var(--btn-sell-color)" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                            </svg>
+                            Удалить
                         </button>
                     </div>
                 </div>
             `).join('');
         }
 
-        async function changeSide(side) {
-            currentSide = side;
-            document.getElementById('tab-buy').className = `selector-btn ${side === 'sell' ? 'active-buy' : ''}`;
-            document.getElementById('tab-sell').className = `selector-btn ${side === 'buy' ? 'active-sell' : ''}`;
-            await loadMarket(side);
-        }
-
-        async function loadMarket(side) {
+        async function loadUserOrders(type = 'active') {
+            const list = document.getElementById('orders-list');
+            list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Загрузка...</div>`;
             try {
-                const response = await fetch(`${API}/api/market`, { 
+                const res = await fetch(`${API}/api/deals/my/${user.id}`, { 
                     headers: { 'ngrok-skip-browser-warning': 'true' } 
                 });
-                if (!response.ok) return;
-                const data = await response.json();
-                allMarketAds = data.ads || [];
-                
-                renderMyAds();
-                applyFilters();
-            } catch (e) {
-                console.error("Market fetch error:", e);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!data.deals || data.deals.length === 0) {
+                        list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Сделок пока нет</div>`;
+                        return;
+                    }
+                    list.innerHTML = data.deals.map(d => `
+                        <div class="card">
+                            <div class="card-top-row">
+                                <div class="card-price-block">
+                                    <span class="card-price">${d.amount_fiat} RUB</span>
+                                </div>
+                                <span class="status-pill ${d.status === 'completed' ? 'pill-ok' : 'pill-need'}">${d.status}</span>
+                            </div>
+                            <div class="card-details-grid">
+                                <span class="card-detail-label">Получаете</span>
+                                <span class="card-detail-val">${d.amount_crypto} USDT</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {
+                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Нет активных сделок</div>`;
             }
         }
 
-        function applyFilters() {
-            const listEl = document.getElementById('market-list');
-            if (!listEl) return;
+        function openDealModal(ad) {
+            activeAd = ad;
+            document.getElementById('deal-step-input').classList.remove('hidden');
+            document.getElementById('deal-step-active').classList.add('hidden');
 
-            const amountInput = parseFloat(document.getElementById('filter-amount').value) || 0;
+            document.getElementById('deal-maker-name').innerText = `Maker_${ad.owner}`;
+            document.getElementById('deal-bank-name').innerText = ad.bank;
+            
+            const maxFiat = (ad.amount * ad.price).toFixed(2);
+            document.getElementById('deal-limits-text').innerText = `100 ~ ${maxFiat} RUB`;
+            document.getElementById('deal-rate-text').innerText = `${ad.price} RUB`;
+            
+            document.getElementById('deal-fiat-input').value = Math.min(500, maxFiat);
+            calculateCrypto();
 
-            let filtered = allMarketAds.filter(ad => ad.type === currentSide);
+            openModal('deal-modal');
+        }
 
-            if (selectedBankValue !== 'ALL') {
-                filtered = filtered.filter(ad => ad.bank.toLowerCase().includes(selectedBankValue.toLowerCase()));
-            }
+        function closeDealModal() { closeModal('deal-modal'); }
 
-            if (amountInput > 0) {
-                filtered = filtered.filter(ad => (ad.amount * ad.price) >= amountInput);
-            }
+        function calculateCrypto() {
+            if (!activeAd) return;
+            const fiatVal = parseFloat(document.getElementById('deal-fiat-input').value) || 0;
+            const cryptoVal = (fiatVal / activeAd.price).toFixed(4);
+            document.getElementById('deal-crypto-subtext').innerText = `≈ ${cryptoVal} USDT`;
+        }
 
-            if (filtered.length === 0) {
-                listEl.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px; font-weight: 500;">Объявлений не найдено</div>`;
+        function setBuyAll() {
+            if (!activeAd) return;
+            const maxFiat = (activeAd.amount * activeAd.price).toFixed(2);
+            document.getElementById('deal-fiat-input').value = maxFiat;
+            calculateCrypto();
+        }
+
+        async function submitDeal() {
+            if (!activeAd) return;
+            const fiatVal = parseFloat(document.getElementById('deal-fiat-input').value);
+            const cryptoVal = fiatVal / activeAd.price;
+
+            if (!fiatVal || fiatVal <= 0) {
+                showToast("Введите корректную сумму", "warning");
                 return;
             }
 
-            const btnClass = currentSide === 'sell' ? 'btn-buy-sm' : 'btn-sell-sm';
-            const btnText = currentSide === 'sell' ? 'Купить' : 'Продать';
+            try {
+                const response = await fetch(`${API}/api/deals/create`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({
+                        ad_id: activeAd.id,
+                        amount_crypto: parseFloat(cryptoVal.toFixed(4))
+                    })
+                });
 
-            listEl.innerHTML = filtered.map(ad => `
+                if (response.ok) {
+                    const resData = await response.json();
+                    activeDealId = resData.deal_id;
+
+                    document.getElementById('deal-step-input').classList.add('hidden');
+                    document.getElementById('deal-step-active').classList.remove('hidden');
+                    
+                    document.getElementById('active-deal-id').innerText = `#${activeDealId}`;
+                    document.getElementById('active-deal-fiat').innerText = `${fiatVal.toFixed(2)} RUB`;
+                    document.getElementById('active-deal-crypto').innerText = `${cryptoVal.toFixed(4)} USDT`;
+                    document.getElementById('active-deal-bank').innerText = activeAd.bank;
+                } else {
+                    const errData = await response.json();
+                    showToast(errData.detail || 'Ошибка базы данных', "error");
+                }
+            } catch (e) {
+                showToast("Ошибка сети", "error");
+            }
+        }
+
+        function markAsPaid() {
+            showToast("Статус отправлен продавцу!", "success");
+            closeDealModal();
+        }
+
+        function cancelDeal() {
+            showToast("Сделка отменена", "info");
+            closeDealModal();
+        }
+
+        /* ОБРАБОТКА НАЖАТИЯ СДЕЛКИ (С ПРОВЕРКОЙ ВЛАДЕЛЬЦА) */
+        async function handleDealClick(ad) {
+            // Если нажал сам автор объявления -> вызываем минималистичное модальное окно
+            if (String(ad.owner) === String(user.id)) {
+                openOwnAdModal();
+                return;
+            }
+
+            await checkUserStatus();
+            if (userStatus.is_verified) {
+                openDealModal(ad);
+            } else {
+                openAuthModal();
+            }
+        }
+
+        function openAuthModal() {
+            updateModalView();
+            openModal('auth-blur-modal');
+        }
+
+        function closeAuthModal() { closeModal('auth-blur-modal'); }
+
+        async function runNextVerificationStep() {
+            if (!userStatus.has_wallet) {
+                tonConnectUI.openModal();
+            } else if (!userStatus.has_phone) {
+                try {
+                    const response = await fetch(`${API}/api/user/request-phone`, {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({})
+                    });
+                    if (response.ok) {
+                        setTimeout(() => tg.close(), 300);
+                    }
+                } catch (e) {
+                    showToast("Ошибка сети", "error");
+                }
+            }
+        }
+
+        async function loadMarket(side = 'sell') {
+            try {
+                const res = await fetch(`${API}/api/market?type=${side}`, { 
+                    headers: { 'ngrok-skip-browser-warning': 'true' } 
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                allMarketAds = data.ads || [];
+                
+                const visibleAds = isTradingEnabled 
+                    ? allMarketAds 
+                    : allMarketAds.filter(ad => String(ad.owner) !== String(user.id));
+
+                renderMarketList(visibleAds, side);
+                renderMyAds();
+            } catch (e) {
+                console.error("loadMarket error:", e);
+            }
+        }
+
+        function renderMarketList(ads, side) {
+            const list = document.getElementById('market-list');
+            
+            if (!ads || ads.length === 0) {
+                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Нет доступных ордеров</div>`;
+                return;
+            }
+
+            window.marketAds = ads;
+
+            list.innerHTML = ads.map((ad, idx) => `
                 <div class="card">
                     <div class="card-top-row">
                         <div class="card-price-block">
                             <span class="card-price">${ad.price} RUB</span>
-                            <span class="card-price-sub">За 1 USDT</span>
+                            <span class="card-price-sub">Цена за 1 USDT</span>
                         </div>
-                        <button class="btn-action-sm ${btnClass}" onclick="handleAdClick(${ad.id})">${btnText}</button>
+                        <button class="btn-action-sm ${side === 'sell' ? 'btn-buy-sm' : 'btn-sell-sm'}" onclick="handleDealClick(window.marketAds[${idx}])">
+                            ${side === 'sell' ? 'КУПИТЬ' : 'ПРОДАТЬ'}
+                        </button>
                     </div>
 
                     <div class="card-user-row">
-                        <span class="card-user-name">Maker #${ad.owner.slice(-4)}</span>
-                        <span class="card-user-stats">• ${ad.deals_count} сделок (${ad.rating}%)</span>
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--btn-buy-color);"></span>
+                        <span class="card-user-name">Maker_${ad.owner}</span>
+                        <span class="card-user-stats">сделок: ${ad.deals_count} • ${ad.rating}%</span>
                     </div>
 
                     <div class="card-details-grid">
                         <span class="card-detail-label">Доступно</span>
                         <span class="card-detail-val">${ad.amount} USDT</span>
 
-                        <span class="card-detail-label">Оплата</span>
+                        <span class="card-detail-label">Лимиты</span>
+                        <span class="card-detail-val">100 — ${(ad.amount * ad.price).toFixed(2)} RUB</span>
+
+                        <span class="card-detail-label">Методы оплаты</span>
                         <span class="card-detail-val">${ad.bank}</span>
                     </div>
 
@@ -1401,164 +1558,33 @@
             `).join('');
         }
 
-        async function handleAdClick(adId) {
-            const ad = allMarketAds.find(a => a.id === adId);
-            if (!ad) return;
+        function applyFilters() {
+            const amountVal = parseFloat(document.getElementById('filter-amount').value) || 0;
 
-            if (String(ad.owner) === String(user.id)) {
-                openOwnAdModal();
-                return;
-            }
+            const baseAds = isTradingEnabled 
+                ? allMarketAds 
+                : allMarketAds.filter(ad => String(ad.owner) !== String(user.id));
 
-            await checkUserStatus();
-            if (!userStatus.is_verified) {
-                openModal('auth-blur-modal');
-                return;
-            }
+            const filtered = baseAds.filter(ad => {
+                const matchesBank = selectedBankValue === 'ALL' || ad.bank === selectedBankValue;
+                const maxFiat = ad.amount * ad.price;
+                const matchesAmount = amountVal === 0 || maxFiat >= amountVal;
+                return matchesBank && matchesAmount;
+            });
 
-            activeAd = ad;
-            document.getElementById('deal-maker-name').innerText = `Maker #${ad.owner.slice(-4)}`;
-            document.getElementById('deal-bank-name').innerText = ad.bank;
-            document.getElementById('deal-limits-text').innerText = `0 - ${(ad.amount * ad.price).toFixed(2)} RUB`;
-            document.getElementById('deal-rate-text').innerText = `${ad.price} RUB`;
-
-            document.getElementById('deal-fiat-input').value = Math.min(500, (ad.amount * ad.price)).toFixed(0);
-            calculateCrypto();
-
-            document.getElementById('deal-step-input').classList.remove('hidden');
-            document.getElementById('deal-step-active').classList.add('hidden');
-
-            openModal('deal-modal');
+            renderMarketList(filtered, currentSide);
         }
 
-        function calculateCrypto() {
-            if (!activeAd) return;
-            const fiat = parseFloat(document.getElementById('deal-fiat-input').value) || 0;
-            const crypto = (fiat / activeAd.price).toFixed(2);
-            document.getElementById('deal-crypto-subtext').innerText = `${crypto} USDT`;
+        function changeSide(side) {
+            currentSide = side;
+            document.getElementById('tab-buy').className = 'selector-btn';
+            document.getElementById('tab-sell').className = 'selector-btn';
+            if (side === 'sell') document.getElementById('tab-buy').classList.add('active-buy');
+            else document.getElementById('tab-sell').classList.add('active-sell');
+            loadMarket(side);
         }
 
-        function setBuyAll() {
-            if (!activeAd) return;
-            const maxFiat = (activeAd.amount * activeAd.price).toFixed(2);
-            document.getElementById('deal-fiat-input').value = maxFiat;
-            calculateCrypto();
-        }
-
-        async function submitDeal() {
-            if (!activeAd) return;
-            const fiat = parseFloat(document.getElementById('deal-fiat-input').value) || 0;
-            const crypto = parseFloat((fiat / activeAd.price).toFixed(2));
-
-            if (fiat <= 0) {
-                showToast("Укажите сумму сделки", "warning");
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API}/api/deals/create`, {
-                    method: 'POST',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({
-                        ad_id: activeAd.id,
-                        amount_crypto: crypto
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    activeDealId = data.deal_id;
-
-                    document.getElementById('active-deal-id').innerText = `#${activeDealId}`;
-                    document.getElementById('active-deal-fiat').innerText = `${fiat} RUB`;
-                    document.getElementById('active-deal-crypto').innerText = `${crypto} USDT`;
-                    document.getElementById('active-deal-bank').innerText = activeAd.bank;
-
-                    document.getElementById('deal-step-input').classList.add('hidden');
-                    document.getElementById('deal-step-active').classList.remove('hidden');
-
-                    showToast("Сделка открыта!", "success");
-                } else {
-                    const err = await response.json();
-                    showToast(err.detail || "Ошибка создания сделки", "error");
-                }
-            } catch (e) {
-                showToast("Ошибка соединения с сервером", "error");
-            }
-        }
-
-        function closeDealModal() { closeModal('deal-modal'); }
-        function closeAuthModal() { closeModal('auth-blur-modal'); }
-
-        async function runNextVerificationStep() {
-            if (!userStatus.has_wallet) {
-                tonConnectUI.openModal();
-                closeAuthModal();
-            } else if (!userStatus.has_phone) {
-                try {
-                    await fetch(`${API}/api/user/request-phone`, {
-                        method: 'POST',
-                        headers: getAuthHeaders(),
-                        body: JSON.stringify({ user_id: String(user.id) })
-                    });
-                    tg.close();
-                } catch (e) {
-                    showToast("Ошибка отправки запроса в бот", "error");
-                }
-            }
-        }
-
-        async function loadUserOrders(tab = 'active') {
-            const list = document.getElementById('orders-list');
-            try {
-                const res = await fetch(`${API}/api/deals/my/${user.id}`, { 
-                    headers: { 'ngrok-skip-browser-warning': 'true' } 
-                });
-                if (!res.ok) return;
-                const data = await res.json();
-                
-                let deals = data.deals || [];
-                if (tab === 'active') {
-                    deals = deals.filter(d => ['created', 'paid'].includes(d.status));
-                } else {
-                    deals = deals.filter(d => ['completed', 'cancelled'].includes(d.status));
-                }
-
-                if (deals.length === 0) {
-                    list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px; font-weight: 500;">Сделок нет</div>`;
-                    return;
-                }
-
-                list.innerHTML = deals.map(d => `
-                    <div class="card" style="margin: 8px 0;">
-                        <div class="card-top-row" style="margin-bottom: 6px;">
-                            <span style="font-weight:700;">Сделка #${d.id}</span>
-                            <span class="status-pill ${d.status === 'completed' ? 'pill-ok' : 'pill-need'}">${d.status.toUpperCase()}</span>
-                        </div>
-                        <div class="card-details-grid">
-                            <span class="card-detail-label">Сумма</span>
-                            <span class="card-detail-val">${d.amount_fiat} RUB (${d.amount_crypto} USDT)</span>
-                        </div>
-                    </div>
-                `).join('');
-
-            } catch (e) {
-                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Ошибка загрузки сделок</div>`;
-            }
-        }
-
-        async function markAsPaid() {
-            showToast("Уведомление отправлено продавцу в боте", "info");
-            closeDealModal();
-            switchNav('orders');
-        }
-
-        async function cancelDeal() {
-            showToast("Сделка отменена", "warning");
-            closeDealModal();
-        }
-
-        // Инициализация при старте
+        tg.expand();
         checkUserStatus();
         loadMarket('sell');
     </script>
