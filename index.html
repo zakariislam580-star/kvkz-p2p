@@ -20,10 +20,6 @@
 
             --btn-buy-color: #34C759;
             --btn-sell-color: #FF3B30;
-            --success-color: #22c55e;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --accent-color: #3b82f6;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -519,6 +515,7 @@
         .status-pill { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
         .pill-ok { background: rgba(52, 199, 89, 0.15); color: var(--btn-buy-color); }
         .pill-need { background: rgba(255, 59, 48, 0.15); color: var(--btn-sell-color); }
+        .pill-warn { background: rgba(255, 149, 0, 0.15); color: #FF9500; }
 
         .wallet-amount-box { text-align: center; margin: 20px 0; }
         .wallet-input-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -541,120 +538,6 @@
         .btn-wallet-submit { width: 100%; padding: 14px; border-radius: 12px; background: var(--brand-accent); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; transition: transform 0.15s ease; }
         .btn-wallet-submit:active { transform: scale(0.97); }
         .btn-wallet-cancel { width: 100%; padding: 12px; border-radius: 12px; background: transparent; color: var(--btn-sell-color); font-size: 14px; font-weight: 600; border: none; cursor: pointer; margin-top: 4px; }
-
-        /* Новые стили для экрана детальной информации по сделке */
-        .deal-container-inner {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .deal-header-card {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg-sub);
-            padding: 12px 14px;
-            border-radius: 12px;
-            border: 0.5px solid var(--border-color);
-        }
-
-        .deal-id-block {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .deal-title-sub {
-            font-size: 12px;
-            color: var(--tg-hint);
-        }
-
-        .deal-badge {
-            font-size: 11px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 6px;
-            width: fit-content;
-        }
-
-        .status-created { background: rgba(59, 130, 246, 0.15); color: var(--accent-color); }
-        .status-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning-color); }
-        .status-info { background: rgba(59, 130, 246, 0.15); color: var(--accent-color); }
-        .status-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger-color); }
-        .status-success { background: rgba(34, 197, 94, 0.15); color: var(--success-color); }
-        .status-muted { background: rgba(148, 163, 184, 0.15); color: var(--tg-hint); }
-
-        .timer-card {
-            text-align: right;
-        }
-
-        .timer-label {
-            display: block;
-            font-size: 10px;
-            color: var(--tg-hint);
-        }
-
-        .timer-value {
-            font-size: 16px;
-            font-weight: 800;
-            color: var(--warning-color);
-            font-variant-numeric: tabular-nums;
-        }
-
-        .section-heading {
-            font-size: 12px;
-            color: var(--tg-hint);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-            font-weight: 700;
-        }
-
-        .requisite-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg-sub);
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 0.5px solid var(--border-color);
-            margin-bottom: 8px;
-        }
-        .requisite-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .requisite-info {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .value-mono {
-            font-family: monospace;
-            font-size: 14px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            color: var(--text-color);
-        }
-
-        .copy-btn {
-            background: var(--border-color);
-            color: var(--text-color);
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .copy-btn:active {
-            background: var(--brand-accent);
-            color: #fff;
-        }
 
         .hidden { display: none !important; }
     </style>
@@ -1027,70 +910,17 @@
                 <button class="btn-wallet-submit" onclick="submitDeal()">КУПИТЬ</button>
             </div>
 
-            <div id="deal-step-active" class="hidden">
-                <!-- Новый экран детальной информации по сделке с таймером, статусами и реквизитами -->
-                <div class="deal-container-inner">
-                    <!-- Шапка со статусом и таймером -->
-                    <div class="deal-header-card">
-                        <div class="deal-id-block">
-                            <span class="deal-title-sub">Сделка <span id="active-deal-id">#0</span></span>
-                            <span id="deal-status-badge" class="deal-badge status-warning">Ожидает оплаты</span>
-                        </div>
-
-                        <div id="timer-container" class="timer-card">
-                            <span class="timer-label">Оплатить в течение:</span>
-                            <span id="active-deal-timer" class="timer-value">15:00</span>
-                        </div>
-                    </div>
-
-                    <!-- Основная информация о сделке -->
-                    <div class="wallet-details-card" style="margin:0;">
-                        <div class="wallet-detail-item">
-                            <span class="wallet-detail-label">Сумма к получению</span>
-                            <span id="active-deal-fiat" class="wallet-detail-value" style="color: var(--btn-buy-color); font-size: 15px;">0 RUB</span>
-                        </div>
-                        <div class="wallet-detail-item">
-                            <span class="wallet-detail-label">Криптовалюта</span>
-                            <span id="active-deal-crypto" class="wallet-detail-value">0 USDT</span>
-                        </div>
-                        <div class="wallet-detail-item">
-                            <span class="wallet-detail-label">Банк / Метод</span>
-                            <span id="active-deal-bank" class="wallet-detail-value">Сбербанк</span>
-                        </div>
-                    </div>
-
-                    <!-- Блок реквизитов с кнопками быстрого копирования -->
-                    <div class="wallet-details-card" style="margin:0;">
-                        <div class="section-heading">Реквизиты для перевода</div>
-                        
-                        <div class="requisite-item">
-                            <div class="requisite-info">
-                                <span class="deal-title-sub">Номер счета / карты</span>
-                                <span id="deal-card-number" class="value-mono">4276 3800 1234 5678</span>
-                            </div>
-                            <button class="copy-btn" onclick="handleCopyDealData(document.getElementById('deal-card-number').innerText, 'card')">
-                                Копировать
-                            </button>
-                        </div>
-
-                        <div class="requisite-item" style="margin-top: 8px;">
-                            <div class="requisite-info">
-                                <span class="deal-title-sub">Получатель</span>
-                                <span id="deal-card-holder" class="wallet-detail-value">Иван И.</span>
-                            </div>
-                            <button class="copy-btn" onclick="handleCopyDealData(document.getElementById('deal-card-holder').innerText, 'holder')">
-                                Копировать
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Действия пользователя со статусами -->
-                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
-                        <button id="deal-action-primary-btn" class="btn-wallet-submit" style="background: var(--btn-buy-color);" onclick="markAsPaid()">Я перевел средства</button>
-                        <div id="deal-status-notice" class="hidden" style="text-align: center; font-size: 13px; color: var(--tg-hint); padding: 6px;">Ожидаем подтверждения от продавца</div>
-                        <button class="btn-wallet-cancel" style="color: var(--danger-color);" onclick="openDispute()">Открыть спор (Арбитраж)</button>
-                    </div>
+            <div id="deal-step-waiting" class="hidden" style="text-align: center;">
+                <div style="width:52px; height:52px; background:rgba(187,204,214,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 14px auto;">
+                    <svg viewBox="0 0 24 24" width="26" height="26">
+                        <path fill="var(--brand-accent)" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    </svg>
                 </div>
+                <div style="font-size: 16px; font-weight: 700; margin-bottom: 6px;">Запрос отправлен</div>
+                <div style="font-size: 13px; color: var(--tg-hint); margin-bottom: 20px; line-height: 1.4;">
+                    Сделка <span id="waiting-deal-id">#0</span> ожидает подтверждения продавца. Как только он примет заявку, вы получите уведомление в боте и сможете провести оплату.
+                </div>
+                <button class="btn-wallet-submit" onclick="goToActiveDeals()">Перейти к моим сделкам</button>
             </div>
 
         </div>
@@ -1113,10 +943,6 @@
         let activeAd = null;
         let activeDealId = null;
         let allMarketAds = [];
-        
-        // Логика таймера для экрана сделки
-        let dealTimerInterval = null;
-        let dealTimeLeft = 900; // 15 минут по умолчанию
 
         // Векторные Иконки для Тоастов
         const SVG_ICONS = {
@@ -1143,12 +969,6 @@
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
-        }
-
-        // Быстрое копирование реквизитов для экрана сделки
-        function handleCopyDealData(text, fieldKey) {
-            navigator.clipboard.writeText(text);
-            showToast("Скопировано в буфер обмена", "success");
         }
 
         document.addEventListener('input', function(e) {
@@ -1496,43 +1316,101 @@
             `).join('');
         }
 
-        async function loadUserOrders(type = 'active') {
+        let currentOrderTab = 'active';
+        const ACTIVE_ORDER_STATUSES = ['pending', 'active', 'paid', 'dispute'];
+        const HISTORY_ORDER_STATUSES = ['completed', 'cancelled'];
+        const ORDER_STATUS_MAP = {
+            pending: { label: 'Ожидает подтверждения', pill: 'pill-warn' },
+            active: { label: 'Ожидает оплаты', pill: 'pill-warn' },
+            paid: { label: 'Оплачено, проверка', pill: 'pill-warn' },
+            dispute: { label: 'Идёт арбитраж', pill: 'pill-need' },
+            completed: { label: 'Завершена', pill: 'pill-ok' },
+            cancelled: { label: 'Отменена', pill: 'pill-need' }
+        };
+
+        function renderOrderActions(d, isBuyer) {
+            if (d.status === 'pending') {
+                return isBuyer
+                    ? `<button class="btn-wallet-cancel" onclick="dealAction(${d.id}, 'cancel')">Отменить запрос</button>`
+                    : `<div style="display:flex; gap:8px; margin-top:8px;">
+                         <button class="btn-action-sm btn-buy-sm" style="flex:1;" onclick="dealAction(${d.id}, 'accept')">Принять</button>
+                         <button class="btn-action-sm btn-sell-sm" style="flex:1;" onclick="dealAction(${d.id}, 'cancel')">Отклонить</button>
+                       </div>`;
+            }
+            if (d.status === 'active') {
+                return isBuyer
+                    ? `<button class="btn-wallet-submit" style="margin-top:8px; background: var(--btn-buy-color);" onclick="dealAction(${d.id}, 'pay')">Я оплатил</button>
+                       <button class="btn-wallet-cancel" onclick="dealAction(${d.id}, 'cancel')">Отменить сделку</button>`
+                    : `<div style="text-align:center; font-size:12px; color:var(--tg-hint); margin-top:8px;">Ожидайте оплату от покупателя</div>`;
+            }
+            if (d.status === 'paid') {
+                return isBuyer
+                    ? `<div style="text-align:center; font-size:12px; color:var(--tg-hint); margin-top:8px;">Ожидайте подтверждения продавца</div>
+                       <button class="btn-wallet-cancel" onclick="dealAction(${d.id}, 'dispute')">Открыть спор</button>`
+                    : `<button class="btn-wallet-submit" style="margin-top:8px; background: var(--btn-buy-color);" onclick="dealAction(${d.id}, 'release')">Подтвердить получение</button>
+                       <button class="btn-wallet-cancel" onclick="dealAction(${d.id}, 'dispute')">Открыть спор</button>`;
+            }
+            if (d.status === 'dispute') {
+                return `<div style="text-align:center; font-size:12px; color:var(--tg-hint); margin-top:8px;">Спор передан администратору, ожидайте решения</div>`;
+            }
+            return '';
+        }
+
+        function renderOrderCard(d) {
+            const isBuyer = String(d.buyer_id) === String(user.id);
+            const counterpartyId = isBuyer ? d.seller_id : d.buyer_id;
+            const statusInfo = ORDER_STATUS_MAP[d.status] || { label: d.status, pill: 'pill-need' };
+
+            return `
+                <div class="card">
+                    <div class="card-top-row">
+                        <div class="card-price-block">
+                            <span class="card-price">${d.amount_fiat} RUB</span>
+                            <span class="card-price-sub">${isBuyer ? 'Покупка' : 'Продажа'} · Сделка #${d.id}</span>
+                        </div>
+                        <span class="status-pill ${statusInfo.pill}">${statusInfo.label}</span>
+                    </div>
+                    <div class="card-details-grid">
+                        <span class="card-detail-label">Сумма</span>
+                        <span class="card-detail-val">${d.amount_crypto} USDT</span>
+                        <span class="card-detail-label">Реквизиты</span>
+                        <span class="card-detail-val">${d.bank_name}</span>
+                        <span class="card-detail-label">Контрагент</span>
+                        <span class="card-detail-val">ID ${counterpartyId}</span>
+                    </div>
+                    ${renderOrderActions(d, isBuyer)}
+                </div>
+            `;
+        }
+
+        async function loadUserOrders(type = currentOrderTab) {
+            currentOrderTab = type;
             const list = document.getElementById('orders-list');
             list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Загрузка...</div>`;
             try {
                 const res = await fetch(`${API}/api/deals/my/${user.id}`, { 
                     headers: { 'ngrok-skip-browser-warning': 'true' } 
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (!data.deals || data.deals.length === 0) {
-                        list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Сделок пока нет</div>`;
-                        return;
-                    }
-                    list.innerHTML = data.deals.map(d => `
-                        <div class="card">
-                            <div class="card-top-row">
-                                <div class="card-price-block">
-                                    <span class="card-price">${d.amount_fiat} RUB</span>
-                                </div>
-                                <span class="status-pill ${d.status === 'completed' ? 'pill-ok' : 'pill-need'}">${d.status}</span>
-                            </div>
-                            <div class="card-details-grid">
-                                <span class="card-detail-label">Получаете</span>
-                                <span class="card-detail-val">${d.amount_crypto} USDT</span>
-                            </div>
-                        </div>
-                    `).join('');
+                if (!res.ok) throw new Error('bad response');
+
+                const data = await res.json();
+                const allowedStatuses = type === 'active' ? ACTIVE_ORDER_STATUSES : HISTORY_ORDER_STATUSES;
+                const filtered = (data.deals || []).filter(d => allowedStatuses.includes(d.status));
+
+                if (filtered.length === 0) {
+                    list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">${type === 'active' ? 'Активных сделок нет' : 'Завершенных сделок нет'}</div>`;
+                    return;
                 }
+                list.innerHTML = filtered.map(renderOrderCard).join('');
             } catch(e) {
-                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Нет активных сделок</div>`;
+                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Не удалось загрузить сделки</div>`;
             }
         }
 
         function openDealModal(ad) {
             activeAd = ad;
             document.getElementById('deal-step-input').classList.remove('hidden');
-            document.getElementById('deal-step-active').classList.add('hidden');
+            document.getElementById('deal-step-waiting').classList.add('hidden');
 
             document.getElementById('deal-maker-name').innerText = `Maker_${ad.owner}`;
             document.getElementById('deal-bank-name').innerText = ad.bank;
@@ -1547,10 +1425,7 @@
             openModal('deal-modal');
         }
 
-        function closeDealModal() { 
-            if (dealTimerInterval) clearInterval(dealTimerInterval);
-            closeModal('deal-modal'); 
-        }
+        function closeDealModal() { closeModal('deal-modal'); }
 
         function calculateCrypto() {
             if (!activeAd) return;
@@ -1564,28 +1439,6 @@
             const maxFiat = (activeAd.amount * activeAd.price).toFixed(2);
             document.getElementById('deal-fiat-input').value = maxFiat;
             calculateCrypto();
-        }
-
-        // Запуск таймера обратного отчета сделки (MM:SS)
-        function startDealTimer(durationInSeconds) {
-            if (dealTimerInterval) clearInterval(dealTimerInterval);
-            dealTimeLeft = durationInSeconds;
-            
-            const timerEl = document.getElementById('active-deal-timer');
-            const timerContainer = document.getElementById('timer-container');
-            timerContainer.style.display = 'block';
-
-            dealTimerInterval = setInterval(() => {
-                if (dealTimeLeft <= 0) {
-                    clearInterval(dealTimerInterval);
-                    timerEl.innerText = "00:00";
-                    return;
-                }
-                dealTimeLeft--;
-                const mins = Math.floor(dealTimeLeft / 60);
-                const secs = dealTimeLeft % 60;
-                timerEl.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            }, 1000);
         }
 
         async function submitDeal() {
@@ -1613,25 +1466,8 @@
                     activeDealId = resData.deal_id;
 
                     document.getElementById('deal-step-input').classList.add('hidden');
-                    document.getElementById('deal-step-active').classList.remove('hidden');
-                    
-                    document.getElementById('active-deal-id').innerText = `#${activeDealId}`;
-                    document.getElementById('active-deal-fiat').innerText = `${fiatVal.toFixed(2)} RUB`;
-                    document.getElementById('active-deal-crypto').innerText = `${cryptoVal.toFixed(4)} USDT`;
-                    document.getElementById('active-deal-bank').innerText = activeAd.bank;
-                    
-                    // Устанавливаем статусы и реквизиты
-                    const badge = document.getElementById('deal-status-badge');
-                    badge.className = 'deal-badge status-warning';
-                    badge.innerText = 'Ожидает оплаты';
-                    
-                    document.getElementById('deal-action-primary-btn').innerText = 'Я перевел средства';
-                    document.getElementById('deal-action-primary-btn').style.background = 'var(--btn-buy-color)';
-                    document.getElementById('deal-action-primary-btn').onclick = markAsPaid;
-                    document.getElementById('deal-status-notice').classList.add('hidden');
-
-                    // Запускаем таймер на 15 минут (900 секунд)
-                    startDealTimer(900);
+                    document.getElementById('deal-step-waiting').classList.remove('hidden');
+                    document.getElementById('waiting-deal-id').innerText = `#${activeDealId}`;
                 } else {
                     const errData = await response.json();
                     showToast(errData.detail || 'Ошибка базы данных', "error");
@@ -1641,32 +1477,36 @@
             }
         }
 
-        function markAsPaid() {
-            if (dealTimerInterval) clearInterval(dealTimerInterval);
-            document.getElementById('timer-container').style.display = 'none';
-
-            const badge = document.getElementById('deal-status-badge');
-            badge.className = 'deal-badge status-info';
-            badge.innerText = 'Оплачена';
-
-            document.getElementById('deal-action-primary-btn').style.display = 'none';
-            document.getElementById('deal-status-notice').classList.remove('hidden');
-
-            showToast("Статус отправлен продавцу!", "success");
-        }
-
-        function openDispute() {
-            const badge = document.getElementById('deal-status-badge');
-            badge.className = 'deal-badge status-danger';
-            badge.innerText = 'Оспаривается';
-
-            showToast("Спор открыт. Подключение арбитра...", "warning");
-        }
-
-        function cancelDeal() {
-            if (dealTimerInterval) clearInterval(dealTimerInterval);
-            showToast("Сделка отменена", "info");
+        function goToActiveDeals() {
             closeDealModal();
+            switchNav('orders');
+        }
+
+        /* Единая точка вызова действий над сделкой (принять/оплатить/подтвердить/спор/отмена) */
+        async function dealAction(dealId, action) {
+            const successMessages = {
+                accept: 'Сделка принята! Реквизиты отправлены покупателю.',
+                pay: 'Оплата отмечена. Ожидайте подтверждения продавца.',
+                cancel: 'Сделка отменена.',
+                release: 'Перевод подтвержден, средства разблокированы.',
+                dispute: 'Спор открыт. Ожидайте арбитра.'
+            };
+            try {
+                const response = await fetch(`${API}/api/deals/${dealId}/action`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ action })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (response.ok) {
+                    showToast(successMessages[action] || 'Готово', 'success');
+                    loadUserOrders(currentOrderTab);
+                } else {
+                    showToast(data.detail || 'Не удалось выполнить действие', 'error');
+                }
+            } catch (e) {
+                showToast('Ошибка сети', 'error');
+            }
         }
 
         /* ОБРАБОТКА НАЖАТИЯ СДЕЛКИ (С ПРОВЕРКОЙ ВЛАДЕЛЬЦА) */
