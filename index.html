@@ -622,6 +622,24 @@
         </div>
     </div>
 
+    <!-- ВКЛАДКА: АДМИН-ПАНЕЛЬ (доступна только admin/support) -->
+    <div id="view-admin" class="view-screen">
+        <div class="header">
+            <span>Админ-панель</span>
+        </div>
+        <div class="trade-header">
+            <div class="selector-group" style="width: 100%;">
+                <button id="admin-tab-dashboard" class="selector-btn active-tab" style="flex:1;" onclick="switchAdminTab('dashboard')">Дашборд</button>
+                <button id="admin-tab-disputes" class="selector-btn" style="flex:1;" onclick="switchAdminTab('disputes')">Диспуты</button>
+                <button id="admin-tab-users" class="selector-btn" style="flex:1;" onclick="switchAdminTab('users')">Юзеры</button>
+            </div>
+        </div>
+
+        <div id="admin-content" style="padding: 10px;">
+            <div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Загрузка...</div>
+        </div>
+    </div>
+
     <!-- ВКЛАДКА 3: ПРОФИЛЬ -->
     <div id="view-profile" class="view-screen">
         <div class="profile-container">
@@ -660,6 +678,15 @@
                     </div>
                     <!-- Переключатель торгов -->
                     <div id="trading-toggle" class="toggle-switch on" onclick="toggleTrading(this)"></div>
+                </div>
+                <div id="admin-menu-item" class="menu-item hidden" onclick="openAdminPanel()">
+                    <div class="menu-left">
+                        <div class="menu-icon">
+                            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="var(--icon-color)" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+                        </div>
+                        <span id="admin-menu-label">Админ-панель</span>
+                    </div>
+                    <span style="color: var(--tg-hint);">&gt;</span>
                 </div>
             </div>
 
@@ -943,6 +970,8 @@
         let activeAd = null;
         let activeDealId = null;
         let allMarketAds = [];
+        let currentUserRole = 'user';
+        let currentAdminTab = 'dashboard';
 
         // Векторные Иконки для Тоастов
         const SVG_ICONS = {
@@ -1023,6 +1052,28 @@
             }
         }
 
+        async function checkUserRole() {
+            try {
+                const response = await fetch(`${API}/api/user/me`, {
+                    headers: getAuthHeaders()
+                });
+                if (!response.ok) return;
+                const data = await response.json();
+                currentUserRole = data.role || 'user';
+
+                const menuItem = document.getElementById('admin-menu-item');
+                const menuLabel = document.getElementById('admin-menu-label');
+                if (currentUserRole === 'admin' || currentUserRole === 'support') {
+                    menuItem.classList.remove('hidden');
+                    menuLabel.innerText = currentUserRole === 'admin' ? 'Админ-панель' : 'Панель поддержки';
+                } else {
+                    menuItem.classList.add('hidden');
+                }
+            } catch (e) {
+                console.error("checkUserRole error:", e);
+            }
+        }
+
         function updateModalView() {
             const wPill = document.getElementById('st-wallet');
             const pPill = document.getElementById('st-phone');
@@ -1097,6 +1148,11 @@
 
             if (target === 'orders') loadUserOrders();
             if (target === 'profile') loadMarket(currentSide);
+            if (target === 'admin') loadAdminTab(currentAdminTab);
+        }
+
+        function openAdminPanel() {
+            switchNav('admin');
         }
 
         function switchOrderTab(tab) {
@@ -1407,6 +1463,243 @@
             }
         }
 
+        /* ================== АДМИН-ПАНЕЛЬ ================== */
+
+        function switchAdminTab(tab) {
+            currentAdminTab = tab;
+            document.getElementById('admin-tab-dashboard').className = `selector-btn ${tab === 'dashboard' ? 'active-tab' : ''}`;
+            document.getElementById('admin-tab-disputes').className = `selector-btn ${tab === 'disputes' ? 'active-tab' : ''}`;
+            document.getElementById('admin-tab-users').className = `selector-btn ${tab === 'users' ? 'active-tab' : ''}`;
+            loadAdminTab(tab);
+        }
+
+        function loadAdminTab(tab) {
+            if (tab === 'dashboard') loadAdminDashboard();
+            else if (tab === 'disputes') loadAdminDisputes();
+            else if (tab === 'users') loadAdminUsers();
+        }
+
+        async function loadAdminDashboard() {
+            const box = document.getElementById('admin-content');
+            box.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Загрузка...</div>`;
+            try {
+                const res = await fetch(`${API}/api/admin/dashboard`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                if (!res.ok) {
+                    box.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">${data.detail || 'Нет доступа'}</div>`;
+                    return;
+                }
+
+                const maintenanceDisabled = currentUserRole !== 'admin';
+
+                box.innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-val">${Number(data.fiat_volume).toLocaleString('ru-RU')} ₽</div>
+                            <div class="stat-lbl">Оборот RUB</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-val">${data.crypto_volume} USDT</div>
+                            <div class="stat-lbl">Оборот USDT</div>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-val">${data.completed_deals}</div>
+                            <div class="stat-lbl">Завершенных сделок</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-val">${Number(data.platform_fee_rub).toLocaleString('ru-RU')} ₽</div>
+                            <div class="stat-lbl">Комиссия (${data.fee_percent}%)</div>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-val">${data.active_ads}</div>
+                            <div class="stat-lbl">Активных объявлений</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-val">${data.active_disputes}</div>
+                            <div class="stat-lbl">Открытых диспутов</div>
+                        </div>
+                    </div>
+                    <div class="menu-list">
+                        <div class="menu-item" style="${maintenanceDisabled ? 'opacity:0.5;' : ''}">
+                            <div class="menu-left">
+                                <span>Технические работы ${maintenanceDisabled ? '(только для гл. админа)' : ''}</span>
+                            </div>
+                            <div id="maintenance-toggle" class="toggle-switch ${data.maintenance_mode ? 'on' : ''}" 
+                                 style="${maintenanceDisabled ? 'pointer-events:none;' : ''}"
+                                 onclick="toggleMaintenanceAdmin(this)"></div>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                box.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Ошибка сети</div>`;
+            }
+        }
+
+        async function toggleMaintenanceAdmin(el) {
+            if (currentUserRole !== 'admin') {
+                showToast('Доступно только главному администратору', 'warning');
+                return;
+            }
+            try {
+                const res = await fetch(`${API}/api/admin/maintenance/toggle`, {
+                    method: 'POST',
+                    headers: getAuthHeaders()
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    el.classList.toggle('on', data.maintenance_mode);
+                    showToast(data.maintenance_mode ? 'Тех. работы включены' : 'Тех. работы выключены', 'info');
+                } else {
+                    showToast(data.detail || 'Ошибка', 'error');
+                }
+            } catch (e) {
+                showToast('Ошибка сети', 'error');
+            }
+        }
+
+        async function loadAdminDisputes() {
+            const box = document.getElementById('admin-content');
+            box.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Загрузка...</div>`;
+            try {
+                const res = await fetch(`${API}/api/admin/disputes`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                if (!res.ok) {
+                    box.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">${data.detail || 'Нет доступа'}</div>`;
+                    return;
+                }
+                if (!data || data.length === 0) {
+                    box.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Открытых диспутов нет</div>`;
+                    return;
+                }
+                box.innerHTML = data.map(d => `
+                    <div class="card">
+                        <div class="card-top-row">
+                            <div class="card-price-block">
+                                <span class="card-price">${d.amount_rub} RUB</span>
+                                <span class="card-price-sub">Сделка #${d.deal_id} · ${d.amount_usdt} USDT</span>
+                            </div>
+                            <span class="status-pill pill-need">Спор</span>
+                        </div>
+                        <div class="card-details-grid">
+                            <span class="card-detail-label">Покупатель</span>
+                            <span class="card-detail-val">ID ${d.buyer_id}</span>
+                            <span class="card-detail-label">Продавец</span>
+                            <span class="card-detail-val">ID ${d.seller_id}</span>
+                        </div>
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <button class="btn-action-sm btn-buy-sm" style="flex:1;" onclick="resolveDisputeAdmin(${d.deal_id}, '${d.buyer_id}')">Покупателю</button>
+                            <button class="btn-action-sm btn-sell-sm" style="flex:1;" onclick="resolveDisputeAdmin(${d.deal_id}, '${d.seller_id}')">Продавцу</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                box.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Ошибка сети</div>`;
+            }
+        }
+
+        async function resolveDisputeAdmin(dealId, winnerId) {
+            try {
+                const res = await fetch(`${API}/api/admin/dispute/resolve`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ deal_id: dealId, winner_id: String(winnerId) })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`Диспут #${dealId} закрыт`, 'success');
+                    loadAdminDisputes();
+                } else {
+                    showToast(data.detail || 'Ошибка', 'error');
+                }
+            } catch (e) {
+                showToast('Ошибка сети', 'error');
+            }
+        }
+
+        async function loadAdminUsers(search = '') {
+            const box = document.getElementById('admin-content');
+            box.innerHTML = `
+                <div class="filter-box" style="margin-bottom: 10px;">
+                    <input type="text" id="admin-user-search" placeholder="Поиск по ID или username" 
+                           value="${search}" oninput="debouncedAdminUserSearch(this.value)">
+                </div>
+                <div id="admin-users-list"><div style="text-align:center; color:var(--tg-hint); margin-top:20px;">Загрузка...</div></div>
+            `;
+            await fetchAdminUsers(search);
+        }
+
+        let adminUserSearchTimer = null;
+        function debouncedAdminUserSearch(value) {
+            clearTimeout(adminUserSearchTimer);
+            adminUserSearchTimer = setTimeout(() => fetchAdminUsers(value), 400);
+        }
+
+        async function fetchAdminUsers(search = '') {
+            const list = document.getElementById('admin-users-list');
+            if (!list) return;
+            try {
+                const url = search ? `${API}/api/admin/users?search=${encodeURIComponent(search)}` : `${API}/api/admin/users`;
+                const res = await fetch(url, { headers: getAuthHeaders() });
+                const data = await res.json();
+                if (!res.ok) {
+                    list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:20px;">${data.detail || 'Нет доступа'}</div>`;
+                    return;
+                }
+                const users = data.users || [];
+                if (users.length === 0) {
+                    list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:20px;">Пользователи не найдены</div>`;
+                    return;
+                }
+                list.innerHTML = users.map(u => `
+                    <div class="card">
+                        <div class="card-top-row">
+                            <div class="card-price-block">
+                                <span class="card-price" style="font-size:15px;">${u.username ? '@' + u.username : 'ID ' + u.user_id}</span>
+                                <span class="card-price-sub">ID ${u.user_id} · роль: ${u.role}</span>
+                            </div>
+                            <span class="status-pill ${u.is_banned ? 'pill-need' : 'pill-ok'}">${u.is_banned ? 'Заблокирован' : 'Активен'}</span>
+                        </div>
+                        <div class="card-details-grid">
+                            <span class="card-detail-label">Телефон</span>
+                            <span class="card-detail-val">${u.phone_number || 'не привязан'}</span>
+                            <span class="card-detail-label">Рейтинг</span>
+                            <span class="card-detail-val">${u.rating}% (${u.deals_success}/${u.deals_total})</span>
+                        </div>
+                        <button class="btn-action-sm ${u.is_banned ? 'btn-buy-sm' : 'btn-sell-sm'}" style="width:100%; margin-top:8px;" 
+                                onclick="banUserAdmin('${u.user_id}', ${!u.is_banned})">
+                            ${u.is_banned ? 'Разблокировать' : 'Заблокировать'}
+                        </button>
+                    </div>
+                `).join('');
+            } catch (e) {
+                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:20px;">Ошибка сети</div>`;
+            }
+        }
+
+        async function banUserAdmin(targetUserId, isBanned) {
+            try {
+                const res = await fetch(`${API}/api/admin/users/ban`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ target_user_id: targetUserId, is_banned: isBanned })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(isBanned ? 'Пользователь заблокирован' : 'Пользователь разблокирован', 'success');
+                    const currentSearch = document.getElementById('admin-user-search')?.value || '';
+                    fetchAdminUsers(currentSearch);
+                } else {
+                    showToast(data.detail || 'Ошибка', 'error');
+                }
+            } catch (e) {
+                showToast('Ошибка сети', 'error');
+            }
+        }
+
         function openDealModal(ad) {
             activeAd = ad;
             document.getElementById('deal-step-input').classList.remove('hidden');
@@ -1649,6 +1942,7 @@
 
         tg.expand();
         checkUserStatus();
+        checkUserRole();
         loadMarket('sell');
     </script>
 </body>
