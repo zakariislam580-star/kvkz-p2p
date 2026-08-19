@@ -49,7 +49,7 @@
             scroll-behavior: smooth;
             background: var(--bg);
             margin: 0;
-            padding-bottom: 85px; /* Увеличен отступ, чтобы нижняя панель не закрывала контент */
+            padding-bottom: 85px; /* Запас снизу, чтобы контент не перекрывался меню */
             color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             overflow-x: hidden;
@@ -329,21 +329,22 @@
         .view-screen { display: none; }
         .view-screen.active { display: block; }
 
-        /* НИЖНЯЯ НАВИГАЦИЯ — Слегка приподнята с плавающим закругленным стилем */
+        /* НИЖНЯЯ НАВИГАЦИЯ — Прямоугольная (без скругления), на всю ширину и слегка приподнята */
         .bottom-nav { 
             position: fixed; 
-            bottom: 10px; 
-            left: 12px; 
-            right: 12px; 
-            height: 62px; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            height: 65px; 
             background: var(--card-bg); 
-            border: 0.5px solid var(--border-color); 
-            border-radius: 20px;
+            border-top: 0.5px solid var(--border-color); 
+            border-radius: 0; /* Закругления убраны */
             display: flex; 
             justify-content: space-around; 
             align-items: center; 
+            padding-bottom: 10px; /* Отступ кнопок от самого низа */
             z-index: 300; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
         }
 
         .nav-item { 
@@ -1089,7 +1090,6 @@
             
             document.getElementById(`view-${target}`).classList.add('active');
             
-            // Выравниваем активную иконку в нижней панели
             let navTargetEl = el;
             if (!navTargetEl) {
                 const navItems = document.querySelectorAll('.nav-item');
@@ -1447,7 +1447,6 @@
 
         /* ОБРАБОТКА НАЖАТИЯ СДЕЛКИ (С ПРОВЕРКОЙ ВЛАДЕЛЬЦА) */
         async function handleDealClick(ad) {
-            // Если нажал сам автор объявления -> вызываем минималистичное модальное окно
             if (String(ad.owner) === String(user.id)) {
                 openOwnAdModal();
                 return;
