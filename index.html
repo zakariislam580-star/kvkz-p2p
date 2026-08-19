@@ -640,11 +640,67 @@
         </div>
     </div>
 
+    <!-- ВКЛАДКА: СПОСОБЫ ОПЛАТЫ -->
+    <div id="view-payment-methods" class="view-screen">
+        <div class="header">
+            <span onclick="switchNav('profile')" style="cursor:pointer; margin-right:8px;">←</span>
+            <span>Способы оплаты</span>
+        </div>
+
+        <div id="payment-methods-list" style="padding: 10px;">
+            <div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Загрузка...</div>
+        </div>
+
+        <button class="create-ad-btn" style="margin: 4px 16px 16px 16px;" onclick="openAddPaymentMethodModal()">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="var(--brand-accent)" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+            Добавить способ оплаты
+        </button>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ СПОСОБА ОПЛАТЫ -->
+    <div id="payment-method-modal" class="blur-overlay" onclick="if(event.target.id==='payment-method-modal') closePaymentMethodModal()">
+        <div class="modal-sheet">
+            <div class="close-cross" onclick="closePaymentMethodModal()">✕</div>
+            <div style="text-align: center; font-weight: 800; font-size: 18px; margin-bottom: 16px;">Новый способ оплаты</div>
+
+            <input type="hidden" id="pm-edit-id">
+
+            <div class="form-group">
+                <label class="form-label">Тип</label>
+                <div class="selector-group" style="width: 100%;">
+                    <button id="pm-type-card" class="selector-btn active-tab" style="flex:1;" onclick="setPaymentMethodType('card')">Карта</button>
+                    <button id="pm-type-sbp" class="selector-btn" style="flex:1;" onclick="setPaymentMethodType('sbp')">СБП</button>
+                    <button id="pm-type-wallet" class="selector-btn" style="flex:1;" onclick="setPaymentMethodType('wallet')">Кошелек</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Банк / платежная система</label>
+                <input type="text" id="pm-bank-name" class="form-input" placeholder="Например: Т-Банк">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" id="pm-requisite-label">Номер карты</label>
+                <input type="text" id="pm-requisite" class="form-input" placeholder="0000 0000 0000 0000">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Получатель (необязательно)</label>
+                <input type="text" id="pm-holder-name" class="form-input" placeholder="Имя Фамилия">
+            </div>
+
+            <button class="btn-wallet-submit" style="margin-top: 10px;" onclick="submitPaymentMethod()">Сохранить</button>
+        </div>
+    </div>
+
     <!-- ВКЛАДКА 3: ПРОФИЛЬ -->
     <div id="view-profile" class="view-screen">
         <div class="profile-container">
             <div class="profile-avatar" id="prof-avatar">U</div>
             <div class="profile-name" id="prof-name">Пользователь</div>
+            <div id="prof-trust-badge" style="display:inline-flex; align-items:center; gap:4px; margin-bottom:14px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700;"></div>
 
             <div class="stats-grid">
                 <div class="stat-box">
@@ -658,12 +714,12 @@
             </div>
 
             <div class="menu-list">
-                <div class="menu-item" onclick="showToast('Раздел в разработке', 'info')">
+                <div class="menu-item" onclick="openPaymentMethodsScreen()">
                     <div class="menu-left">
                         <div class="menu-icon">
                             <svg viewBox="0 0 24 24" width="22" height="22"><path fill="var(--icon-color)" d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
                         </div>
-                        <span>Настройки оплаты</span>
+                        <span>Способы оплаты</span>
                     </div>
                     <span style="color: var(--tg-hint);">&gt;</span>
                 </div>
@@ -1061,6 +1117,12 @@
                 const data = await response.json();
                 currentUserRole = data.role || 'user';
 
+                const dealsCountEl = document.getElementById('prof-deals-count');
+                const dealsRatingEl = document.getElementById('prof-deals-rating');
+                if (dealsCountEl) dealsCountEl.innerText = data.deals_total ?? 0;
+                if (dealsRatingEl) dealsRatingEl.innerText = `${data.rating ?? 100}%`;
+                renderTrustBadge(data.rating ?? 100, data.deals_total ?? 0, data.deals_success ?? 0);
+
                 const menuItem = document.getElementById('admin-menu-item');
                 const menuLabel = document.getElementById('admin-menu-label');
                 if (currentUserRole === 'admin' || currentUserRole === 'support') {
@@ -1149,6 +1211,7 @@
             if (target === 'orders') loadUserOrders();
             if (target === 'profile') loadMarket(currentSide);
             if (target === 'admin') loadAdminTab(currentAdminTab);
+            if (target === 'payment-methods') loadPaymentMethods();
         }
 
         function openAdminPanel() {
@@ -1159,6 +1222,176 @@
             document.getElementById('order-tab-active').className = `selector-btn ${tab === 'active' ? 'active-tab' : ''}`;
             document.getElementById('order-tab-history').className = `selector-btn ${tab === 'history' ? 'active-tab' : ''}`;
             loadUserOrders(tab);
+        }
+
+        /* ==== Значок доверия (рейтинг) ==== */
+        function renderTrustBadge(rating, dealsTotal, dealsSuccess) {
+            const box = document.getElementById('prof-trust-badge');
+            if (!box) return;
+
+            let level, bg, color;
+            if (dealsTotal === 0) {
+                level = 'Новый трейдер';
+                bg = 'rgba(187,204,214,0.15)';
+                color = 'var(--tg-hint)';
+            } else if (rating >= 95) {
+                level = 'Высокое доверие';
+                bg = 'rgba(52,199,89,0.15)';
+                color = 'var(--btn-buy-color)';
+            } else if (rating >= 80) {
+                level = 'Надежный трейдер';
+                bg = 'rgba(255,149,0,0.15)';
+                color = '#FF9500';
+            } else {
+                level = 'Низкий рейтинг';
+                bg = 'rgba(255,59,48,0.15)';
+                color = 'var(--btn-sell-color)';
+            }
+
+            box.style.background = bg;
+            box.style.color = color;
+            box.innerHTML = `
+                <svg viewBox="0 0 24 24" width="13" height="13"><path fill="${color}" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+                ${level} · ${dealsSuccess}/${dealsTotal} сделок
+            `;
+        }
+
+        /* ==== Способы оплаты ==== */
+        let paymentMethods = [];
+        let newPaymentMethodType = 'card';
+
+        function openPaymentMethodsScreen() {
+            switchNav('payment-methods');
+        }
+
+        async function loadPaymentMethods() {
+            const list = document.getElementById('payment-methods-list');
+            list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Загрузка...</div>`;
+            try {
+                const res = await fetch(`${API}/api/user/payment-methods`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                if (!res.ok) {
+                    list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">${data.detail || 'Ошибка загрузки'}</div>`;
+                    return;
+                }
+                paymentMethods = data.payment_methods || [];
+                renderPaymentMethods();
+            } catch (e) {
+                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Ошибка сети</div>`;
+            }
+        }
+
+        const PM_TYPE_LABELS = { card: 'Карта', sbp: 'СБП', wallet: 'Кошелек' };
+
+        function renderPaymentMethods() {
+            const list = document.getElementById('payment-methods-list');
+            if (paymentMethods.length === 0) {
+                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Способы оплаты еще не добавлены</div>`;
+                return;
+            }
+            list.innerHTML = paymentMethods.map(pm => `
+                <div class="card">
+                    <div class="card-top-row">
+                        <div class="card-price-block">
+                            <span class="card-price" style="font-size:15px;">${pm.bank_name}</span>
+                            <span class="card-price-sub">${PM_TYPE_LABELS[pm.method_type] || pm.method_type} · ${pm.requisite_masked}</span>
+                        </div>
+                        <span class="status-pill ${pm.is_active ? 'pill-ok' : 'pill-need'}">${pm.is_active ? 'Активен' : 'Скрыт'}</span>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button class="btn-action-sm btn-sell-sm" style="flex:1;" onclick='openEditPaymentMethodModal(${JSON.stringify(pm)})'>Изменить</button>
+                        <button class="btn-action-sm btn-buy-sm" style="flex:1;" onclick="deletePaymentMethod(${pm.id})">Удалить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setPaymentMethodType(type) {
+            newPaymentMethodType = type;
+            document.getElementById('pm-type-card').className = `selector-btn ${type === 'card' ? 'active-tab' : ''}`;
+            document.getElementById('pm-type-sbp').className = `selector-btn ${type === 'sbp' ? 'active-tab' : ''}`;
+            document.getElementById('pm-type-wallet').className = `selector-btn ${type === 'wallet' ? 'active-tab' : ''}`;
+
+            const requisiteInput = document.getElementById('pm-requisite');
+            const requisiteLabel = document.getElementById('pm-requisite-label');
+            if (type === 'card') {
+                requisiteLabel.innerText = 'Номер карты';
+                requisiteInput.placeholder = '0000 0000 0000 0000';
+            } else if (type === 'sbp') {
+                requisiteLabel.innerText = 'Номер телефона СБП';
+                requisiteInput.placeholder = '+7 900 000-00-00';
+            } else {
+                requisiteLabel.innerText = 'Адрес / реквизит кошелька';
+                requisiteInput.placeholder = 'Например: my_wallet_01';
+            }
+        }
+
+        function openAddPaymentMethodModal() {
+            document.getElementById('pm-edit-id').value = '';
+            document.getElementById('pm-bank-name').value = '';
+            document.getElementById('pm-requisite').value = '';
+            document.getElementById('pm-holder-name').value = '';
+            setPaymentMethodType('card');
+            document.getElementById('payment-method-modal').classList.add('active');
+        }
+
+        function openEditPaymentMethodModal(pm) {
+            document.getElementById('pm-edit-id').value = pm.id;
+            document.getElementById('pm-bank-name').value = pm.bank_name;
+            document.getElementById('pm-requisite').value = '';
+            document.getElementById('pm-holder-name').value = pm.holder_name || '';
+            setPaymentMethodType(pm.method_type);
+            document.getElementById('pm-requisite').placeholder = `Текущий: ${pm.requisite_masked} (введите новый, чтобы изменить)`;
+            document.getElementById('payment-method-modal').classList.add('active');
+        }
+
+        function closePaymentMethodModal() {
+            document.getElementById('payment-method-modal').classList.remove('active');
+        }
+
+        async function submitPaymentMethod() {
+            const editId = document.getElementById('pm-edit-id').value;
+            const bankName = document.getElementById('pm-bank-name').value.trim();
+            const requisite = document.getElementById('pm-requisite').value.trim();
+            const holderName = document.getElementById('pm-holder-name').value.trim();
+
+            if (!bankName) { showToast('Укажите банк или платежную систему', 'warning'); return; }
+            if (!requisite) { showToast('Укажите реквизит', 'warning'); return; }
+
+            try {
+                const url = editId ? `${API}/api/user/payment-methods/${editId}` : `${API}/api/user/payment-methods`;
+                const method = editId ? 'PUT' : 'POST';
+                const body = editId
+                    ? { bank_name: bankName, requisite: requisite, holder_name: holderName, is_active: true }
+                    : { method_type: newPaymentMethodType, bank_name: bankName, requisite: requisite, holder_name: holderName };
+
+                const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(body) });
+                const data = await res.json();
+                if (!res.ok) {
+                    showToast(data.detail || 'Ошибка сохранения', 'error');
+                    return;
+                }
+                showToast(editId ? 'Способ оплаты обновлен' : 'Способ оплаты добавлен', 'success');
+                closePaymentMethodModal();
+                loadPaymentMethods();
+            } catch (e) {
+                showToast('Ошибка сети', 'error');
+            }
+        }
+
+        async function deletePaymentMethod(id) {
+            try {
+                const res = await fetch(`${API}/api/user/payment-methods/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+                const data = await res.json();
+                if (!res.ok) {
+                    showToast(data.detail || 'Ошибка удаления', 'error');
+                    return;
+                }
+                showToast('Способ оплаты удален', 'success');
+                loadPaymentMethods();
+            } catch (e) {
+                showToast('Ошибка сети', 'error');
+            }
         }
 
         function switchProfileAdsTab(side) {
