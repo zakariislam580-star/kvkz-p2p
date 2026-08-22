@@ -632,6 +632,18 @@
         .btn-wallet-cancel { width: 100%; padding: 12px; border-radius: 12px; background: transparent; color: var(--btn-sell-color); font-size: 14px; font-weight: 600; border: none; cursor: pointer; margin-top: 4px; }
 
         .hidden { display: none !important; }
+
+        /* Подсветка карточки при переходе по ссылке из уведомления бота */
+        @keyframes deepLinkPulse {
+            0%, 100% { outline-color: transparent; }
+            15%, 60% { outline-color: var(--brand-accent); }
+        }
+        .deep-link-highlight {
+            outline: 3px solid transparent;
+            outline-offset: 3px;
+            border-radius: 14px;
+            animation: deepLinkPulse 1.4s ease-in-out 2;
+        }
     </style>
 </head>
 <body>
@@ -685,11 +697,6 @@
                 </div>
                 <div id="bank-dropdown" class="custom-dropdown">
                     <div class="dropdown-item selected" onclick="selectBank('ALL', 'Все банки')">Все банки</div>
-                    <div class="dropdown-item" onclick="selectBank('Сбербанк', 'Сбербанк')">Сбербанк</div>
-                    <div class="dropdown-item" onclick="selectBank('Т-Банк (Тинькофф)', 'Т-Банк')">Т-Банк</div>
-                    <div class="dropdown-item" onclick="selectBank('СБП', 'СБП')">СБП</div>
-                    <div class="dropdown-item" onclick="selectBank('ВТБ', 'ВТБ')">ВТБ</div>
-                    <div class="dropdown-item" onclick="selectBank('Альфа-Банк', 'Альфа-Банк')">Альфа-Банк</div>
                 </div>
             </div>
         </div>
@@ -1304,7 +1311,27 @@
             selectedBankValue = val;
             document.getElementById('selected-bank').innerText = label;
             document.getElementById('bank-dropdown').classList.remove('show');
+            document.querySelectorAll('#bank-dropdown .dropdown-item').forEach(item => {
+                item.classList.toggle('selected', item.dataset.bankValue === val);
+            });
             applyFilters();
+        }
+
+        async function initBankFilter() {
+            await ensurePaymentBanks();
+            renderBankFilterDropdown();
+        }
+
+        function renderBankFilterDropdown() {
+            const cardBanks = (paymentBanksCache && paymentBanksCache.card_banks) || [];
+            const options = [{ val: 'ALL', label: 'Все банки' }]
+                .concat(cardBanks.map(b => ({ val: b, label: b })))
+                .concat([{ val: 'СБП', label: 'СБП' }]);
+
+            const dropdown = document.getElementById('bank-dropdown');
+            dropdown.innerHTML = options.map(o => `
+                <div class="dropdown-item ${o.val === selectedBankValue ? 'selected' : ''}" data-bank-value="${o.val}" onclick="selectBank('${o.val.replace(/'/g, "\\'")}', '${o.label.replace(/'/g, "\\'")}')">${o.label}</div>
+            `).join('');
         }
 
         function switchNav(target, el) {
@@ -1351,6 +1378,42 @@
             document.getElementById('order-tab-active').className = `selector-btn ${tab === 'active' ? 'active-tab' : ''}`;
             document.getElementById('order-tab-history').className = `selector-btn ${tab === 'history' ? 'active-tab' : ''}`;
             loadUserOrders(tab);
+        }
+
+        /* ==== Переход из уведомлений бота к конкретной сделке/диспуту ==== */
+        function highlightCardById(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return false;
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('deep-link-highlight');
+            setTimeout(() => el.classList.remove('deep-link-highlight'), 3000);
+            return true;
+        }
+
+        async function handleDeepLink() {
+            const params = new URLSearchParams(window.location.search);
+            const dealId = params.get('deal_id');
+            const adminDealId = params.get('admin_deal_id');
+
+            if (dealId) {
+                switchNav('orders');
+                await loadUserOrders('active');
+                let found = highlightCardById(`deal-card-${dealId}`);
+                if (!found) {
+                    switchOrderTab('history');
+                    await loadUserOrders('history');
+                    highlightCardById(`deal-card-${dealId}`);
+                }
+            } else if (adminDealId) {
+                if (currentUserRole !== 'admin' && currentUserRole !== 'support') return;
+                switchNav('admin');
+                currentAdminTab = 'disputes';
+                document.getElementById('admin-tab-dashboard').className = 'selector-btn';
+                document.getElementById('admin-tab-disputes').className = 'selector-btn active-tab';
+                document.getElementById('admin-tab-users').className = 'selector-btn';
+                await loadAdminDisputes();
+                highlightCardById(`dispute-card-${adminDealId}`);
+            }
         }
 
         /* ==== Значок доверия (рейтинг) ==== */
@@ -2080,7 +2143,7 @@
             ` : '';
 
             return `
-                <div class="card">
+                <div class="card" id="deal-card-${d.id}">
                     <div class="card-top-row">
                         <div class="card-price-block">
                             <span class="card-price">${d.amount_fiat} RUB</span>
@@ -2239,7 +2302,7 @@
                     return;
                 }
                 box.innerHTML = data.map(d => `
-                    <div class="card">
+                    <div class="card" id="dispute-card-${d.deal_id}">
                         <div class="card-top-row">
                             <div class="card-price-block">
                                 <span class="card-price">${d.amount_rub} RUB</span>
@@ -2604,9 +2667,13 @@
         }
 
         tg.expand();
-        checkUserStatus();
-        checkUserRole();
-        loadMarket('sell');
+        (async () => {
+            await checkUserStatus();
+            await checkUserRole();
+            initBankFilter();
+            await loadMarket('sell');
+            handleDeepLink();
+        })();
     </script>
 </body>
 </html>
