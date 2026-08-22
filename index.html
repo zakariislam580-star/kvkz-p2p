@@ -49,10 +49,15 @@
             scroll-behavior: smooth;
             background: var(--bg);
             margin: 0;
-            padding-bottom: 85px; /* Запас снизу, чтобы контент не перекрывался меню */
+            padding: 0;
             color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow-x: hidden;
+            overflow: hidden;
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overscroll-behavior: none;
         }
 
         /* Кастомное всплывающее уведомление (Toast) */
@@ -327,7 +332,15 @@
 
         /* Вкладки */
         .view-screen { display: none; }
-        .view-screen.active { display: block; }
+        .view-screen.active { 
+            display: block; 
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            padding-bottom: 85px; /* Запас снизу, чтобы контент не перекрывался меню */
+        }
 
         /* НИЖНЯЯ НАВИГАЦИЯ — Прямоугольная (без скругления), на всю ширину и слегка приподнята */
         .bottom-nav { 
@@ -1343,7 +1356,9 @@
         async function ensurePaymentBanks() {
             if (paymentBanksCache) return paymentBanksCache;
             try {
-                const res = await fetch(`${API}/api/payment-methods/banks`);
+                const res = await fetch(`${API}/api/payment-methods/banks`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
                 paymentBanksCache = await res.json();
             } catch (e) {
                 paymentBanksCache = { card_banks: [], sbp_banks: [] };
@@ -1397,7 +1412,7 @@
                         <span class="status-pill ${pm.is_active ? 'pill-ok' : 'pill-need'}">${pm.is_active ? 'Активен' : 'Скрыт'}</span>
                     </div>
                     <div style="display:flex; gap:8px; margin-top:8px;">
-                        <button class="btn-action-sm btn-neutral-sm" style="flex:1;" onclick='openEditPaymentMethodModal(${JSON.stringify(pm)})'>Изменить</button>
+                        <button class="btn-action-sm btn-neutral-sm" style="flex:1;" onclick="openEditPaymentMethodModal(${pm.id})">Изменить</button>
                         <button class="btn-action-sm btn-sell-sm" style="flex:1;" onclick="deletePaymentMethod(${pm.id})">Удалить</button>
                     </div>
                 </div>
@@ -1491,7 +1506,12 @@
             document.getElementById('payment-method-modal').classList.add('active');
         }
 
-        async function openEditPaymentMethodModal(pm) {
+        async function openEditPaymentMethodModal(methodId) {
+            const pm = paymentMethods.find(m => m.id === methodId);
+            if (!pm) {
+                showToast('Способ оплаты не найден', 'error');
+                return;
+            }
             document.getElementById('pm-modal-title').innerText = 'Изменить способ оплаты';
             document.getElementById('pm-edit-id').value = pm.id;
             document.getElementById('pm-card-number').value = '';
@@ -1587,19 +1607,20 @@
         function populatePaymentMethodSelect(selectId, currentValue) {
             const sel = document.getElementById(selectId);
             const activeMethods = paymentMethods.filter(pm => pm.is_active);
-            const options = activeMethods.map(pm => `${pm.method_type === 'sbp' ? 'СБП' : pm.bank_name} · ${pm.requisite_masked}`);
 
-            if (options.length === 0) {
+            if (activeMethods.length === 0) {
                 sel.innerHTML = `<option value="">Нет добавленных способов оплаты</option>`;
                 return false;
             }
 
-            if (currentValue && !options.includes(currentValue)) {
-                options.unshift(currentValue);
-            }
+            sel.innerHTML = activeMethods.map(pm => {
+                const label = `${pm.method_type === 'sbp' ? 'СБП' : pm.bank_name} · ${pm.requisite_masked}`;
+                return `<option value="${pm.id}">${label}</option>`;
+            }).join('');
 
-            sel.innerHTML = options.map(o => `<option value="${o.replace(/"/g, '&quot;')}">${o}</option>`).join('');
-            if (currentValue) sel.value = currentValue;
+            if (currentValue !== undefined && currentValue !== null && String(currentValue) !== '') {
+                sel.value = String(currentValue);
+            }
             return true;
         }
 
@@ -1648,11 +1669,15 @@
         async function submitNewAd() {
             const price = parseFloat(document.getElementById('new-ad-price').value);
             const amount = parseFloat(document.getElementById('new-ad-amount').value);
-            const bank = document.getElementById('new-ad-bank').value;
+            const paymentMethodId = parseInt(document.getElementById('new-ad-bank').value, 10);
             const description = document.getElementById('new-ad-desc').value.trim();
 
             if (!price || !amount) {
                 showToast("Заполните цену и количество", "warning");
+                return;
+            }
+            if (!paymentMethodId) {
+                showToast("Выберите способ оплаты", "warning");
                 return;
             }
 
@@ -1664,7 +1689,7 @@
                         type: newAdType,
                         price: price,
                         amount: amount,
-                        bank: bank,
+                        payment_method_id: paymentMethodId,
                         comment: description
                     })
                 });
@@ -1707,7 +1732,7 @@
             }
         }
 
-        async function openEditAdModal(id, price, amount, bank, comment) {
+        async function openEditAdModal(id, price, amount, paymentMethodId, comment) {
             document.getElementById('edit-ad-id').value = id;
             document.getElementById('edit-ad-price').value = price;
             document.getElementById('edit-ad-amount').value = amount;
@@ -1718,7 +1743,12 @@
                 const data = await res.json();
                 if (res.ok) paymentMethods = data.payment_methods || [];
             } catch (e) { /* используем то, что уже есть в памяти */ }
-            populatePaymentMethodSelect('edit-ad-bank', bank);
+
+            if (!populatePaymentMethodSelect('edit-ad-bank', paymentMethodId)) {
+                showToast('Сначала добавьте способ оплаты в профиле', 'warning');
+                switchNav('payment-methods');
+                return;
+            }
 
             openModal('edit-ad-modal');
         }
@@ -1727,11 +1757,15 @@
             const adId = document.getElementById('edit-ad-id').value;
             const price = parseFloat(document.getElementById('edit-ad-price').value);
             const amount = parseFloat(document.getElementById('edit-ad-amount').value);
-            const bank = document.getElementById('edit-ad-bank').value;
+            const paymentMethodId = parseInt(document.getElementById('edit-ad-bank').value, 10);
             const comment = document.getElementById('edit-ad-desc').value.trim();
 
             if (!price || !amount) {
                 showToast("Заполните цену и количество", "warning");
+                return;
+            }
+            if (!paymentMethodId) {
+                showToast("Выберите способ оплаты", "warning");
                 return;
             }
 
@@ -1742,7 +1776,7 @@
                     body: JSON.stringify({
                         price: price,
                         amount: amount,
-                        bank: bank,
+                        payment_method_id: paymentMethodId,
                         comment: comment
                     })
                 });
@@ -1793,7 +1827,7 @@
 
                     <div class="my-ad-controls">
                         <!-- Кнопка Редактировать -->
-                        <button class="btn-ctrl" onclick="openEditAdModal(${ad.id}, ${ad.price}, ${ad.amount}, '${ad.bank}', '${ad.comment.replace(/'/g, "\\'")}')">
+                        <button class="btn-ctrl" onclick="openEditAdModal(${ad.id}, ${ad.price}, ${ad.amount}, ${ad.payment_method_id || 'null'}, '${ad.comment.replace(/'/g, "\\'")}')">
                             <svg viewBox="0 0 24 24" width="16" height="16">
                                 <path fill="var(--icon-color)" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                             </svg>
@@ -1852,10 +1886,36 @@
             return '';
         }
 
+        function copyRequisite(text) {
+            const clean = (text || '').trim();
+            if (!clean) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(clean).then(
+                    () => showToast('Скопировано', 'success'),
+                    () => showToast('Не удалось скопировать', 'error')
+                );
+            } else {
+                showToast('Копирование не поддерживается', 'warning');
+            }
+        }
+
         function renderOrderCard(d) {
             const isBuyer = String(d.buyer_id) === String(user.id);
             const counterpartyId = isBuyer ? d.seller_id : d.buyer_id;
             const statusInfo = ORDER_STATUS_MAP[d.status] || { label: d.status, pill: 'pill-need' };
+            const showRequisite = ['active', 'paid', 'dispute'].includes(d.status) && d.requisite;
+
+            const requisiteHtml = showRequisite ? `
+                <div class="wallet-details-card" style="margin-top:8px;">
+                    <div class="wallet-detail-item">
+                        <span class="wallet-detail-label">${d.bank_name}${d.holder_name ? ' · ' + d.holder_name : ''}</span>
+                        <span class="wallet-detail-value" style="display:flex; align-items:center; gap:8px;">
+                            ${d.requisite}
+                            <span onclick="copyRequisite('${d.requisite.replace(/'/g, "\\'")}')" style="cursor:pointer; font-size:11px; color:var(--brand-accent); font-weight:700;">Копир.</span>
+                        </span>
+                    </div>
+                </div>
+            ` : '';
 
             return `
                 <div class="card">
@@ -1869,11 +1929,12 @@
                     <div class="card-details-grid">
                         <span class="card-detail-label">Сумма</span>
                         <span class="card-detail-val">${d.amount_crypto} USDT</span>
-                        <span class="card-detail-label">Реквизиты</span>
+                        <span class="card-detail-label">Способ оплаты</span>
                         <span class="card-detail-val">${d.bank_name}</span>
                         <span class="card-detail-label">Контрагент</span>
                         <span class="card-detail-val">ID ${counterpartyId}</span>
                     </div>
+                    ${requisiteHtml}
                     ${renderOrderActions(d, isBuyer)}
                 </div>
             `;
