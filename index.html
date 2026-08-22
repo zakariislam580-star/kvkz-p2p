@@ -1053,6 +1053,17 @@
         </div>
     </div>
 
+    <!-- МОДАЛЬНОЕ ОКНО ЛОГА ПЕРЕПИСКИ ПО СДЕЛКЕ (для арбитра) -->
+    <div id="chat-log-modal" class="blur-overlay" onclick="if(event.target.id==='chat-log-modal') closeChatLogModal()">
+        <div class="modal-sheet">
+            <div class="close-cross" onclick="closeChatLogModal()">✕</div>
+            <div style="text-align: center; font-weight: 800; font-size: 18px; margin-bottom: 12px;" id="chat-log-title">Переписка по сделке</div>
+            <div id="chat-log-list" style="max-height: 60vh; overflow-y: auto; display:flex; flex-direction:column; gap:8px;">
+                <div style="text-align:center; color:var(--tg-hint); margin-top:20px;">Загрузка...</div>
+            </div>
+        </div>
+    </div>
+
     <!-- МОДАЛЬНОЕ ОКНО ВЕРИФИКАЦИИ -->
     <div id="auth-blur-modal" class="blur-overlay" onclick="if(event.target.id==='auth-blur-modal') closeAuthModal()">
         <div class="modal-sheet" style="border-radius: 20px; margin-bottom: auto; margin-top: auto;">
@@ -1164,6 +1175,7 @@
         let allMarketAds = [];
         let currentUserRole = 'user';
         let currentAdminTab = 'dashboard';
+        let botUsername = null;
 
         // Векторные Иконки для Тоастов
         const SVG_ICONS = {
@@ -2085,6 +2097,10 @@
         };
 
         function renderOrderActions(d, isBuyer) {
+            const chatBtn = d.chat_available
+                ? `<button class="btn-ctrl" style="width:100%; margin-top:8px;" onclick="openDealChat(${d.id})">💬 Чат с контрагентом</button>`
+                : '';
+
             if (d.status === 'pending') {
                 return isBuyer
                     ? `<button class="btn-wallet-cancel" onclick="dealAction(${d.id}, 'cancel')">Отменить запрос</button>`
@@ -2094,22 +2110,51 @@
                        </div>`;
             }
             if (d.status === 'active') {
-                return isBuyer
+                return (isBuyer
                     ? `<button class="btn-wallet-submit" style="margin-top:8px; background: var(--btn-buy-color);" onclick="dealAction(${d.id}, 'pay')">Я оплатил</button>
                        <button class="btn-wallet-cancel" onclick="dealAction(${d.id}, 'cancel')">Отменить сделку</button>`
-                    : `<div style="text-align:center; font-size:12px; color:var(--tg-hint); margin-top:8px;">Ожидайте оплату от покупателя</div>`;
+                    : `<div style="text-align:center; font-size:12px; color:var(--tg-hint); margin-top:8px;">Ожидайте оплату от покупателя</div>`) + chatBtn;
             }
             if (d.status === 'paid') {
-                return isBuyer
+                return (isBuyer
                     ? `<div style="text-align:center; font-size:12px; color:var(--tg-hint); margin-top:8px;">Ожидайте подтверждения продавца</div>
                        <button class="btn-wallet-cancel" onclick="dealAction(${d.id}, 'dispute')">Открыть спор</button>`
                     : `<button class="btn-wallet-submit" style="margin-top:8px; background: var(--btn-buy-color);" onclick="dealAction(${d.id}, 'release')">Подтвердить получение</button>
-                       <button class="btn-wallet-cancel" onclick="dealAction(${d.id}, 'dispute')">Открыть спор</button>`;
+                       <button class="btn-wallet-cancel" onclick="dealAction(${d.id}, 'dispute')">Открыть спор</button>`) + chatBtn;
             }
             if (d.status === 'dispute') {
-                return `<div style="text-align:center; font-size:12px; color:var(--tg-hint); margin-top:8px;">Спор передан администратору, ожидайте решения</div>`;
+                return `<div style="text-align:center; font-size:12px; color:var(--tg-hint); margin-top:8px;">Спор передан администратору, ожидайте решения</div>` + chatBtn;
+            }
+            if (['completed', 'cancelled'].includes(d.status)) {
+                return chatBtn;
             }
             return '';
+        }
+
+        async function ensureBotUsername() {
+            if (botUsername) return botUsername;
+            try {
+                const res = await fetch(`${API}/api/bot-info`, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+                const data = await res.json();
+                botUsername = data.username || null;
+            } catch (e) {
+                botUsername = null;
+            }
+            return botUsername;
+        }
+
+        async function openDealChat(dealId) {
+            const username = await ensureBotUsername();
+            if (!username) {
+                showToast('Не удалось открыть чат, попробуйте позже', 'error');
+                return;
+            }
+            const link = `https://t.me/${username}?start=chat_${dealId}`;
+            if (tg && tg.openTelegramLink) {
+                tg.openTelegramLink(link);
+            } else {
+                window.open(link, '_blank');
+            }
         }
 
         function copyRequisite(text) {
@@ -2329,6 +2374,9 @@
                             <button class="btn-action-sm btn-buy-sm" style="flex:1;" onclick="resolveDisputeAdmin(${d.deal_id}, '${d.buyer_id}')">Покупателю</button>
                             <button class="btn-action-sm btn-sell-sm" style="flex:1;" onclick="resolveDisputeAdmin(${d.deal_id}, '${d.seller_id}')">Продавцу</button>
                         </div>
+                        <button class="btn-ctrl" style="width:100%; margin-top:8px;" onclick="openChatLogModal(${d.deal_id})">
+                            💬 Переписка по сделке
+                        </button>
                     </div>
                 `).join('');
             } catch (e) {
@@ -2353,6 +2401,61 @@
             } catch (e) {
                 showToast('Ошибка сети', 'error');
             }
+        }
+
+        async function openChatLogModal(dealId) {
+            document.getElementById('chat-log-title').innerText = `Переписка по сделке #${dealId}`;
+            const list = document.getElementById('chat-log-list');
+            list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:20px;">Загрузка...</div>`;
+            openModal('chat-log-modal');
+
+            try {
+                const res = await fetch(`${API}/api/deals/${dealId}/messages`, { headers: getAuthHeaders() });
+                const data = await res.json();
+                if (!res.ok) {
+                    list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:20px;">${data.detail || 'Не удалось загрузить переписку'}</div>`;
+                    return;
+                }
+                renderChatLog(data.messages || [], data.buyer_id, data.seller_id);
+            } catch (e) {
+                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:20px;">Ошибка сети</div>`;
+            }
+        }
+
+        function closeChatLogModal() {
+            closeModal('chat-log-modal');
+        }
+
+        function renderChatLog(messages, buyerId, sellerId) {
+            const list = document.getElementById('chat-log-list');
+            if (!messages.length) {
+                list.innerHTML = `<div style="text-align:center; color:var(--tg-hint); margin-top:20px;">Сообщений пока нет</div>`;
+                return;
+            }
+            list.innerHTML = messages.map(m => {
+                const isBuyer = String(m.sender_id) === String(buyerId);
+                const roleLabel = isBuyer ? 'Покупатель' : (String(m.sender_id) === String(sellerId) ? 'Продавец' : 'Участник');
+                const time = m.created_at ? new Date(m.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+
+                let body = '';
+                if (m.content_type === 'text') {
+                    body = `<div style="white-space:pre-wrap; word-break:break-word;">${(m.text_content || '').replace(/</g, '&lt;')}</div>`;
+                } else if (m.content_type === 'photo') {
+                    body = `<div style="font-size:12.5px; color:var(--tg-hint);">📷 Фото (file_id: ${m.file_id.slice(0, 16)}…)</div>${m.text_content ? `<div style="margin-top:4px;">${m.text_content.replace(/</g, '&lt;')}</div>` : ''}`;
+                } else if (m.content_type === 'document') {
+                    body = `<div style="font-size:12.5px; color:var(--tg-hint);">📎 Файл (file_id: ${m.file_id.slice(0, 16)}…)</div>${m.text_content ? `<div style="margin-top:4px;">${m.text_content.replace(/</g, '&lt;')}</div>` : ''}`;
+                }
+
+                return `
+                    <div class="wallet-details-card" style="margin:0;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <span style="font-size:11.5px; font-weight:700; color:${isBuyer ? 'var(--btn-buy-color)' : 'var(--btn-sell-color)'};">${roleLabel} · ID ${m.sender_id}</span>
+                            <span style="font-size:11px; color:var(--tg-hint);">${time}</span>
+                        </div>
+                        ${body}
+                    </div>
+                `;
+            }).join('');
         }
 
         async function loadAdminUsers(search = '') {
