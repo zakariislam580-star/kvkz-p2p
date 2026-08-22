@@ -1099,7 +1099,7 @@
             
             <div id="deal-step-input">
                 <div style="text-align: center; font-size: 13px; color: var(--tg-hint); font-weight: 600;">
-                    Вы покупаете у <span id="deal-maker-name" style="color:var(--text-color);">Maker</span>
+                    <span id="deal-direction-label">Вы покупаете у</span> <span id="deal-maker-name" style="color:var(--text-color);">Maker</span>
                 </div>
 
                 <div class="wallet-amount-box">
@@ -1108,7 +1108,7 @@
                         <span class="wallet-currency">RUB</span>
                     </div>
                     <div id="deal-crypto-subtext" class="wallet-subtext">0.00 USDT</div>
-                    <div class="btn-link" onclick="setBuyAll()">Купить все</div>
+                    <div class="btn-link" id="deal-all-btn" onclick="setBuyAll()">Купить все</div>
                 </div>
 
                 <div class="wallet-details-card">
@@ -1364,6 +1364,7 @@
                 }
             }
 
+            if (target === 'market') loadMarket(currentSide);
             if (target === 'orders') loadUserOrders();
             if (target === 'profile') loadMarket(currentSide);
             if (target === 'admin') loadAdminTab(currentAdminTab);
@@ -2124,16 +2125,24 @@
             }
         }
 
+        function formatBankLabel(bankName, linkedBanks) {
+            if (bankName === 'СБП' && linkedBanks && linkedBanks.length) {
+                return `${bankName} (${linkedBanks.join(', ')})`;
+            }
+            return bankName;
+        }
+
         function renderOrderCard(d) {
             const isBuyer = String(d.buyer_id) === String(user.id);
             const counterpartyId = isBuyer ? d.seller_id : d.buyer_id;
             const statusInfo = ORDER_STATUS_MAP[d.status] || { label: d.status, pill: 'pill-need' };
             const showRequisite = ['active', 'paid', 'dispute'].includes(d.status) && d.requisite;
+            const bankLabel = formatBankLabel(d.bank_name, d.linked_banks);
 
             const requisiteHtml = showRequisite ? `
                 <div class="wallet-details-card" style="margin-top:8px;">
                     <div class="wallet-detail-item">
-                        <span class="wallet-detail-label">${d.bank_name}${d.holder_name ? ' · ' + d.holder_name : ''}</span>
+                        <span class="wallet-detail-label">${bankLabel}${d.holder_name ? ' · ' + d.holder_name : ''}</span>
                         <span class="wallet-detail-value" style="display:flex; align-items:center; gap:8px;">
                             ${d.requisite}
                             <span onclick="copyRequisite('${d.requisite.replace(/'/g, "\\'")}')" style="cursor:pointer; font-size:11px; color:var(--brand-accent); font-weight:700;">Копир.</span>
@@ -2155,7 +2164,7 @@
                         <span class="card-detail-label">Сумма</span>
                         <span class="card-detail-val">${d.amount_crypto} USDT</span>
                         <span class="card-detail-label">Способ оплаты</span>
-                        <span class="card-detail-val">${d.bank_name}</span>
+                        <span class="card-detail-val">${bankLabel}</span>
                         <span class="card-detail-label">Контрагент</span>
                         <span class="card-detail-val">ID ${counterpartyId}</span>
                     </div>
@@ -2431,6 +2440,12 @@
             document.getElementById('deal-step-input').classList.remove('hidden');
             document.getElementById('deal-step-waiting').classList.add('hidden');
 
+            // ad.type === 'sell' -> объявление о продаже, значит текущий пользователь покупает.
+            // ad.type === 'buy'  -> объявление о покупке, значит текущий пользователь продаёт.
+            const isUserBuying = ad.type === 'sell';
+            document.getElementById('deal-direction-label').innerText = isUserBuying ? 'Вы покупаете у' : 'Вы продаете';
+            document.getElementById('deal-all-btn').innerText = isUserBuying ? 'Купить все' : 'Продать все';
+
             document.getElementById('deal-maker-name').innerText = `Maker_${ad.owner}`;
             document.getElementById('deal-bank-name').innerText = ad.bank;
             
@@ -2487,6 +2502,10 @@
                     document.getElementById('deal-step-input').classList.add('hidden');
                     document.getElementById('deal-step-waiting').classList.remove('hidden');
                     document.getElementById('waiting-deal-id').innerText = `#${activeDealId}`;
+
+                    // Обновляем список объявлений, чтобы доступный остаток USDT в карточке
+                    // сразу отражал уменьшение после создания сделки.
+                    loadMarket(currentSide);
                 } else {
                     const errData = await response.json();
                     showToast(errData.detail || 'Ошибка базы данных', "error");
