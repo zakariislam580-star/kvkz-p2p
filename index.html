@@ -510,6 +510,26 @@
             transform: translateY(0);
         }
 
+        /* Модалка с "плавающей" кнопкой снизу — скроллится только список, кнопка всегда видна */
+        .modal-sheet-sticky-footer {
+            display: flex;
+            flex-direction: column;
+            max-height: 82vh;
+            overflow: hidden;
+        }
+        .modal-sheet-sticky-footer .scroll-list-area {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex: 1 1 auto;
+            min-height: 0;
+            margin: 0 -4px;
+            padding: 0 4px;
+        }
+        .modal-sheet-sticky-footer .sticky-confirm-btn {
+            flex-shrink: 0;
+            margin-top: 14px;
+        }
+
         .close-cross { 
             position: absolute; 
             top: 14px; right: 14px; 
@@ -798,11 +818,13 @@
 
     <!-- ВЫБОР БАНКОВ, ПРИВЯЗАННЫХ К СБП (мультивыбор всплывающим окном) -->
     <div id="sbp-bank-picker-modal" class="blur-overlay" style="z-index: 1100;" onclick="if(event.target.id==='sbp-bank-picker-modal') closeSbpBankPicker()">
-        <div class="modal-sheet">
+        <div class="modal-sheet modal-sheet-sticky-footer">
             <div class="close-cross" onclick="closeSbpBankPicker()">✕</div>
-            <div style="text-align: center; font-weight: 800; font-size: 18px; margin-bottom: 16px;">Банки, привязанные к СБП</div>
-            <div class="select-methods-list" id="sbp-bank-picker-list"></div>
-            <button class="btn-wallet-submit" style="margin-top: 14px;" onclick="confirmSbpBankPicker()">Подтвердить</button>
+            <div style="text-align: center; font-weight: 800; font-size: 18px; margin-bottom: 16px; flex-shrink:0;">Банки, привязанные к СБП</div>
+            <div class="scroll-list-area">
+                <div class="select-methods-list" id="sbp-bank-picker-list"></div>
+            </div>
+            <button class="btn-wallet-submit sticky-confirm-btn" onclick="confirmSbpBankPicker()">Подтвердить</button>
         </div>
     </div>
 
@@ -1372,23 +1394,23 @@
 
         const BANK_COLORS = {
             'Сбербанк': '#21A038', 'Т-Банк': '#FFDD2D', 'Озон Банк': '#005BFF',
-            'Альфа-Банк': '#EF3124', 'ВТБ': '#009FDF', 'Газпромбанк': '#0079C1',
-            'Совкомбанк': '#E4002B', 'Райффайзенбанк': '#FFED00', 'Почта Банк': '#6C2EB9',
-            'Ак Барс Банк': '#00529B', 'Росбанк': '#C8102E', 'МТС Банк': '#D0006F',
-            'Промсвязьбанк': '#8B1A1A', 'Россельхозбанк': '#004C97', 'Открытие': '#1BA0DB',
+            'Альфа-Банк': '#EF3124', 'ВТБ': '#002F87', 'Газпромбанк': '#0079C1',
+            'Совкомбанк': '#A6192E', 'Райффайзенбанк': '#FFED00', 'Почта Банк': '#6C2EB9',
+            'Ак Барс Банк': '#00833E', 'Росбанк': '#EC1C24', 'МТС Банк': '#E30611',
+            'Промсвязьбанк': '#E30613', 'Россельхозбанк': '#00539F', 'Открытие': '#1BA0DB',
             'Банк Санкт-Петербург': '#00A19A', 'Уралсиб': '#00A650', 'Русский Стандарт': '#F58220',
-            'Ренессанс Банк': '#5C2D91', 'Хоум Кредит Банк': '#E2001A', 'ЮниКредит Банк': '#00549F',
-            'Кредит Европа Банк': '#003A70', 'Локо-Банк': '#00B140', 'СКБ-Банк': '#6E7B8B'
+            'Ренессанс Банк': '#5C2D91', 'Хоум Кредит Банк': '#E2001A', 'ЮниКредит Банк': '#E4610F',
+            'Кредит Европа Банк': '#00478A', 'Локо-Банк': '#00A651', 'Банк Синара': '#3A5FA8'
         };
         const BANK_DARK_TEXT = new Set(['Т-Банк', 'Райффайзенбанк']);
         const BANK_INITIALS = {
             'Сбербанк': 'СБ', 'Т-Банк': 'Т', 'Озон Банк': 'ОЗ', 'Альфа-Банк': 'АЛ',
-            'ВТБ': 'ВТБ', 'Газпромбанк': 'ГПБ', 'Совкомбанк': 'СК', 'Райффайзенбанк': 'РФ',
+            'ВТБ': 'ВТБ', 'Газпромбанк': 'ГПБ', 'Совкомбанк': 'СК', 'Райффайзенбанк': 'РАЙ',
             'Почта Банк': 'ПБ', 'Ак Барс Банк': 'АКБ', 'Росбанк': 'РОС', 'МТС Банк': 'МТС',
-            'Промсвязьбанк': 'ПСБ', 'Россельхозбанк': 'РСХ', 'Открытие': 'ОТК',
-            'Банк Санкт-Петербург': 'БСП', 'Уралсиб': 'УРС', 'Русский Стандарт': 'РС',
-            'Ренессанс Банк': 'РЕН', 'Хоум Кредит Банк': 'ХКБ', 'ЮниКредит Банк': 'ЮКБ',
-            'Кредит Европа Банк': 'КЕБ', 'Локо-Банк': 'ЛОК', 'СКБ-Банк': 'СКБ'
+            'Промсвязьбанк': 'ПСБ', 'Россельхозбанк': 'РСХБ', 'Открытие': 'ОТК',
+            'Банк Санкт-Петербург': 'БСПБ', 'Уралсиб': 'УРС', 'Русский Стандарт': 'РС',
+            'Ренессанс Банк': 'РЕН', 'Хоум Кредит Банк': 'ХКФ', 'ЮниКредит Банк': 'ЮКБ',
+            'Кредит Европа Банк': 'КЕБ', 'Локо-Банк': 'ЛОКО', 'Банк Синара': 'СИН'
         };
         function bankDot(bankName) {
             const bg = BANK_COLORS[bankName] || 'var(--brand-accent)';
@@ -1496,8 +1518,8 @@
 
         function renderSbpBankPickerList() {
             const wrap = document.getElementById('sbp-bank-picker-list');
-            // По возрастанию популярности (справочник от бэкенда идёт по убыванию — разворачиваем).
-            const banks = ((paymentBanksCache && paymentBanksCache.sbp_banks) || []).slice().reverse();
+            // По убыванию популярности — как приходит из справочника банков.
+            const banks = ((paymentBanksCache && paymentBanksCache.sbp_banks) || []).slice();
             wrap.innerHTML = banks.map(b => {
                 const checked = tempSelectedSbpBanks.includes(b);
                 return `
