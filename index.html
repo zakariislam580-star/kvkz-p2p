@@ -599,6 +599,13 @@
         .select-method-name { font-size: 14px; font-weight: 700; }
         .select-method-sub { font-size: 12px; color: var(--tg-hint); }
 
+        .method-picker-trigger {
+            display: flex; align-items: center; justify-content: space-between;
+            cursor: pointer; gap: 8px;
+        }
+        .method-picker-trigger span:first-child { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .method-picker-arrow { color: var(--tg-hint); font-size: 16px; flex-shrink: 0; transition: transform 0.2s ease; }
+
         .btn-wallet-submit { width: 100%; padding: 14px; border-radius: 12px; background: var(--brand-accent); color: #fff; font-size: 16px; font-weight: 700; border: none; cursor: pointer; transition: transform 0.15s ease; }
         .btn-wallet-submit:active { transform: scale(0.97); }
         .btn-wallet-cancel { width: 100%; padding: 12px; border-radius: 12px; background: transparent; color: var(--btn-sell-color); font-size: 14px; font-weight: 600; border: none; cursor: pointer; margin-top: 4px; }
@@ -715,7 +722,7 @@
             <div style="text-align:center; color:var(--tg-hint); margin-top:40px;">Загрузка...</div>
         </div>
 
-        <button class="create-ad-btn" style="margin: 4px 16px 16px 16px;" onclick="openAddPaymentMethodModal()">
+        <button class="create-ad-btn" style="margin: 4px 16px 16px 16px; width: calc(100% - 32px);" onclick="openAddPaymentMethodModal()">
             <svg viewBox="0 0 24 24" width="20" height="20">
                 <path fill="var(--brand-accent)" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
             </svg>
@@ -748,7 +755,7 @@
                             <div class="bank-grid" id="pm-card-bank-grid"></div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Номер карты</label>
+                            <label class="form-label">Номер карты или телефона</label>
                             <input type="text" inputmode="numeric" id="pm-card-number" class="form-input" placeholder="0000 0000 0000 0000" maxlength="23" oninput="formatCardNumberInput(this)">
                         </div>
                     </div>
@@ -773,6 +780,15 @@
             </div>
 
             <button class="btn-wallet-submit" style="margin-top: 10px;" onclick="submitPaymentMethod()">Сохранить</button>
+        </div>
+    </div>
+
+    <!-- МИНИМАЛИСТИЧНЫЙ СПИСОК ВЫБОРА СПОСОБА ОПЛАТЫ (вместо системного select) -->
+    <div id="method-picker-modal" class="blur-overlay" onclick="if(event.target.id==='method-picker-modal') closeMethodPicker()">
+        <div class="modal-sheet">
+            <div class="close-cross" onclick="closeMethodPicker()">✕</div>
+            <div style="text-align: center; font-weight: 800; font-size: 18px; margin-bottom: 16px;">Способ оплаты</div>
+            <div class="select-methods-list" id="method-picker-list"></div>
         </div>
     </div>
 
@@ -920,7 +936,11 @@
 
             <div class="form-group">
                 <label class="form-label">Способ оплаты</label>
-                <select id="new-ad-bank" class="form-input"></select>
+                <div class="method-picker-trigger form-input" onclick="openMethodPicker('new-ad-bank')">
+                    <span id="new-ad-bank-label">Выберите способ оплаты</span>
+                    <span class="method-picker-arrow">›</span>
+                </div>
+                <input type="hidden" id="new-ad-bank">
             </div>
 
             <div class="form-group">
@@ -952,7 +972,11 @@
 
             <div class="form-group">
                 <label class="form-label">Способ оплаты</label>
-                <select id="edit-ad-bank" class="form-input"></select>
+                <div class="method-picker-trigger form-input" onclick="openMethodPicker('edit-ad-bank')">
+                    <span id="edit-ad-bank-label">Выберите способ оплаты</span>
+                    <span class="method-picker-arrow">›</span>
+                </div>
+                <input type="hidden" id="edit-ad-bank">
             </div>
 
             <div class="form-group">
@@ -1337,14 +1361,20 @@
             'Альфа-Банк': '#EF3124', 'ВТБ': '#009FDF', 'Газпромбанк': '#0079C1',
             'Совкомбанк': '#E4002B', 'Райффайзенбанк': '#FFED00', 'Почта Банк': '#6C2EB9',
             'Ак Барс Банк': '#00529B', 'Росбанк': '#C8102E', 'МТС Банк': '#D0006F',
-            'Промсвязьбанк': '#8B1A1A', 'Россельхозбанк': '#004C97', 'Открытие': '#1BA0DB'
+            'Промсвязьбанк': '#8B1A1A', 'Россельхозбанк': '#004C97', 'Открытие': '#1BA0DB',
+            'Банк Санкт-Петербург': '#00A19A', 'Уралсиб': '#00A650', 'Русский Стандарт': '#F58220',
+            'Ренессанс Банк': '#5C2D91', 'Хоум Кредит Банк': '#E2001A', 'ЮниКредит Банк': '#00549F',
+            'Кредит Европа Банк': '#003A70', 'Локо-Банк': '#00B140', 'СКБ-Банк': '#6E7B8B'
         };
         const BANK_DARK_TEXT = new Set(['Т-Банк', 'Райффайзенбанк']);
         const BANK_INITIALS = {
             'Сбербанк': 'СБ', 'Т-Банк': 'Т', 'Озон Банк': 'ОЗ', 'Альфа-Банк': 'АЛ',
             'ВТБ': 'ВТБ', 'Газпромбанк': 'ГПБ', 'Совкомбанк': 'СК', 'Райффайзенбанк': 'РФ',
             'Почта Банк': 'ПБ', 'Ак Барс Банк': 'АКБ', 'Росбанк': 'РОС', 'МТС Банк': 'МТС',
-            'Промсвязьбанк': 'ПСБ', 'Россельхозбанк': 'РСХ', 'Открытие': 'ОТК'
+            'Промсвязьбанк': 'ПСБ', 'Россельхозбанк': 'РСХ', 'Открытие': 'ОТК',
+            'Банк Санкт-Петербург': 'БСП', 'Уралсиб': 'УРС', 'Русский Стандарт': 'РС',
+            'Ренессанс Банк': 'РЕН', 'Хоум Кредит Банк': 'ХКБ', 'ЮниКредит Банк': 'ЮКБ',
+            'Кредит Европа Банк': 'КЕБ', 'Локо-Банк': 'ЛОК', 'СКБ-Банк': 'СКБ'
         };
         function bankDot(bankName) {
             const bg = BANK_COLORS[bankName] || 'var(--brand-accent)';
@@ -1451,13 +1481,7 @@
             renderSbpBankList();
         }
 
-        function formatCardNumberInput(el) {
-            let digits = el.value.replace(/\D/g, '').slice(0, 19);
-            el.value = digits.replace(/(.{4})/g, '$1 ').trim();
-        }
-
-        function formatSbpPhoneInput(el) {
-            let digits = el.value.replace(/\D/g, '');
+        function formatRuPhoneDigits(digits) {
             if (digits.startsWith('8')) digits = '7' + digits.slice(1);
             if (digits.length > 0 && !digits.startsWith('7')) digits = '7' + digits;
             digits = digits.slice(0, 11);
@@ -1471,7 +1495,22 @@
                 if (rest.length > 6) out += '-' + rest.slice(6, 8);
                 if (rest.length > 8) out += '-' + rest.slice(8, 10);
             }
-            el.value = out;
+            return out;
+        }
+
+        function formatCardNumberInput(el) {
+            const raw = el.value.replace(/\D/g, '');
+            // Если похоже на номер телефона (начинается с 7/8/9) — форматируем как телефон,
+            // иначе как номер карты группами по 4 цифры.
+            if (raw.length > 0 && /^[789]/.test(raw)) {
+                el.value = formatRuPhoneDigits(raw);
+            } else {
+                el.value = raw.slice(0, 19).replace(/(.{4})/g, '$1 ').trim();
+            }
+        }
+
+        function formatSbpPhoneInput(el) {
+            el.value = formatRuPhoneDigits(el.value.replace(/\D/g, ''));
         }
 
         function swapPmFields(showType) {
@@ -1538,7 +1577,7 @@
                 bankName = selectedCardBank;
                 requisite = document.getElementById('pm-card-number').value.trim();
                 if (!bankName) { showToast('Выберите банк', 'warning'); return; }
-                if (!requisite) { showToast('Укажите номер карты', 'warning'); return; }
+                if (!requisite) { showToast('Укажите номер карты или телефона', 'warning'); return; }
             } else {
                 bankName = 'СБП';
                 requisite = document.getElementById('pm-sbp-phone').value.trim();
@@ -1604,24 +1643,78 @@
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-        function populatePaymentMethodSelect(selectId, currentValue) {
-            const sel = document.getElementById(selectId);
+        function populatePaymentMethodSelect(targetId, currentValue) {
             const activeMethods = paymentMethods.filter(pm => pm.is_active);
+            const hidden = document.getElementById(targetId);
+            const label = document.getElementById(`${targetId}-label`);
 
             if (activeMethods.length === 0) {
-                sel.innerHTML = `<option value="">Нет добавленных способов оплаты</option>`;
+                hidden.value = '';
+                label.innerText = 'Нет добавленных способов оплаты';
                 return false;
             }
 
-            sel.innerHTML = activeMethods.map(pm => {
-                const label = `${pm.method_type === 'sbp' ? 'СБП' : pm.bank_name} · ${pm.requisite_masked}`;
-                return `<option value="${pm.id}">${label}</option>`;
-            }).join('');
-
+            let selected = null;
             if (currentValue !== undefined && currentValue !== null && String(currentValue) !== '') {
-                sel.value = String(currentValue);
+                selected = activeMethods.find(pm => String(pm.id) === String(currentValue));
             }
+            if (!selected) selected = activeMethods[0];
+
+            hidden.value = selected.id;
+            label.innerHTML = methodPickerLabelHtml(selected);
             return true;
+        }
+
+        function methodPickerLabelHtml(pm) {
+            const name = pm.method_type === 'sbp' ? 'СБП' : pm.bank_name;
+            const sub = pm.method_type === 'sbp' && pm.linked_banks && pm.linked_banks.length
+                ? `${pm.requisite_masked} · ${pm.linked_banks.join(', ')}`
+                : pm.requisite_masked;
+            return `<b>${name}</b> · ${sub}`;
+        }
+
+        let methodPickerTarget = null;
+
+        function openMethodPicker(targetId) {
+            const activeMethods = paymentMethods.filter(pm => pm.is_active);
+            if (activeMethods.length === 0) {
+                showToast('Сначала добавьте способ оплаты в профиле', 'warning');
+                switchNav('payment-methods');
+                return;
+            }
+            methodPickerTarget = targetId;
+            const currentValue = document.getElementById(targetId).value;
+            const list = document.getElementById('method-picker-list');
+            list.innerHTML = activeMethods.map(pm => {
+                const name = pm.method_type === 'sbp' ? 'СБП' : pm.bank_name;
+                const sub = pm.method_type === 'sbp' && pm.linked_banks && pm.linked_banks.length
+                    ? `${pm.requisite_masked} · ${pm.linked_banks.join(', ')}`
+                    : pm.requisite_masked;
+                const selected = String(pm.id) === String(currentValue) ? 'selected' : '';
+                return `
+                    <div class="select-method-row ${selected}" onclick="pickMethod(${pm.id})">
+                        ${bankDot(name)}
+                        <div class="select-method-info">
+                            <span class="select-method-name">${name}</span>
+                            <span class="select-method-sub">${sub}</span>
+                        </div>
+                    </div>`;
+            }).join('');
+            document.getElementById('method-picker-modal').classList.add('active');
+        }
+
+        function pickMethod(id) {
+            if (!methodPickerTarget) return;
+            const pm = paymentMethods.find(m => m.id === id);
+            if (!pm) return;
+            document.getElementById(methodPickerTarget).value = pm.id;
+            document.getElementById(`${methodPickerTarget}-label`).innerHTML = methodPickerLabelHtml(pm);
+            closeMethodPicker();
+        }
+
+        function closeMethodPicker() {
+            document.getElementById('method-picker-modal').classList.remove('active');
+            methodPickerTarget = null;
         }
 
         async function openCreateAdModal() {
